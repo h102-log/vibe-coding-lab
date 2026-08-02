@@ -15,8 +15,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `exp3/` | 남은 자산이 새 세션에서 회수되는가(`assetRun`) | 종료 | `exp3/FROZEN3.md` | `docs/REPORT3.md` — 회수된다(새 세션 3/3) |
 
 **세 실험이 전부 끝났고 `exp3/`도 이제 동결이다.** 다음은 실험이 아니라 **실사용** 트랙이다.
-설계는 `docs/next/2026-08-02/r8.md`(무엇을 관측하나), 개시 지시서는 `r9.md`(무엇을 만드나)에 있다.
-대상은 **`ai-prompt-vault`** — **별도 리포**이고 이 리포에는 관측 기록(`docs/usage/`)만 남는다.
+설계는 `docs/next/2026-08-02/r8.md`(무엇을 관측하나), 개시 지시서는 `r9.md`(무엇을 만드나),
+첫 세션 절차는 `docs/next/2026-08-03/r10.md`에 있다.
+대상은 **`C:\Users\bhy99\proj\ai-prompt-vault`** — **별도 리포**이고 이 리포에는 관측 기록(`docs/usage/`)만 남는다.
+2026-08-02에 리포 준비(43줄 주입·커밋 `75ade65`)와 스택 확정(**Vite + React**)까지 끝났고, 첫 세션은 아직이다.
+**첫 세션은 cwd가 대상 리포일 때만 성립한다** — 여기서 대신 쓰면 43줄이 로드되지 않아 트랙이 무효다(r10 §2).
 
 ## 절대 규칙
 
