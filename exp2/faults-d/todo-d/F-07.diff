@@ -1,0 +1,15 @@
+diff -ru exp2/pristine/todo-d-src/todo/storage.ts exp2/todo-d/src/todo/storage.ts
+--- exp2/pristine/todo-d-src/todo/storage.ts	2026-08-02 17:24:30.519525300 +0900
++++ exp2/todo-d/src/todo/storage.ts	2026-08-02 17:24:37.442685400 +0900
+@@ -42,9 +42,9 @@
+   }
+ }
+ 
+-export function saveTodos(todos: Todo[]): void {
++export function saveTodos(_todos: Todo[]): void {
+   try {
+-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(todos));
++    // F-07: 저장소에 상태를 쓰는 호출을 제거했다.
+   } catch {
+     // 저장 실패는 화면 동작에 영향을 주지 않는다.
+   }

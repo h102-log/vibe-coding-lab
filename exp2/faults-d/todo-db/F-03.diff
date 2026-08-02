@@ -1,0 +1,16 @@
+diff -ru exp2/pristine/todo-db-src/App.tsx exp2/todo-db/src/App.tsx
+--- exp2/pristine/todo-db-src/App.tsx	2026-08-02 17:25:02.793648400 +0900
++++ exp2/todo-db/src/App.tsx	2026-08-02 17:25:26.526971800 +0900
+@@ -52,10 +52,8 @@
+     addTodo()
+   }
+ 
+-  const toggleTodo = (id: string) => {
+-    setTodos((prev) =>
+-      prev.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)),
+-    )
++  const toggleTodo = (_id: string) => {
++    // F-03: 앱 상태를 갱신하는 호출을 제거했다.
+   }
+ 
+   const deleteTodo = (id: string) => {

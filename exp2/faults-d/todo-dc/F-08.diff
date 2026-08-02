@@ -1,0 +1,11 @@
+diff -ru exp2/pristine/todo-dc-src/todo/TodoItem.tsx exp2/todo-dc/src/todo/TodoItem.tsx
+--- exp2/pristine/todo-dc-src/todo/TodoItem.tsx	2026-08-02 17:25:41.793799900 +0900
++++ exp2/todo-dc/src/todo/TodoItem.tsx	2026-08-02 17:25:57.133022100 +0900
+@@ -19,7 +19,6 @@
+       />
+       <span data-testid="todo-title">{todo.title}</span>
+       <button data-testid="todo-delete" type="button" onClick={() => onDelete(todo.id)}>
+-        삭제
+       </button>
+     </li>
+   );

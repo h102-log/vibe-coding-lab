@@ -1,0 +1,15 @@
+diff -ru exp2/pristine/todo-dc-src/App.tsx exp2/todo-dc/src/App.tsx
+--- exp2/pristine/todo-dc-src/App.tsx	2026-08-02 17:25:41.788799400 +0900
++++ exp2/todo-dc/src/App.tsx	2026-08-02 17:26:04.643685700 +0900
+@@ -23,9 +23,8 @@
+     setTodos((prev) => [...prev, todo]); // U10: 맨 뒤에 붙는다.
+   }
+ 
+-  function toggleTodo(id: number) {
+-    // U13/U15: 제목이 아니라 id로 찾고, 대상 하나만 반전한다.
+-    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
++  function toggleTodo(_id: number) {
++    // F-03: 앱 상태를 갱신하는 호출을 제거했다.
+   }
+ 
+   function deleteTodo(id: number) {

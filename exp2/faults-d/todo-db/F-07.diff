@@ -1,0 +1,17 @@
+diff -ru exp2/pristine/todo-db-src/storage.ts exp2/todo-db/src/storage.ts
+--- exp2/pristine/todo-db-src/storage.ts	2026-08-02 17:25:02.795142600 +0900
++++ exp2/todo-db/src/storage.ts	2026-08-02 17:25:10.957976800 +0900
+@@ -37,11 +37,11 @@
+ }
+ 
+ /** U37: 목록이 바뀔 때마다 통째로 덮어쓴다. */
+-export function saveTodos(todos: readonly Todo[]): void {
++export function saveTodos(_todos: readonly Todo[]): void {
+   const store = storage()
+   if (store === null) return
+   try {
+-    store.setItem(STORAGE_KEY, JSON.stringify(todos))
++    // F-07: 저장소에 상태를 쓰는 호출을 제거했다.
+   } catch {
+     // 저장 실패(용량 초과·프라이빗 모드)가 화면 동작을 막지는 않는다.
+   }

@@ -1,0 +1,3 @@
+# 개행 변환 금지 — FROZEN*.md §0이 바이트 해시(Get-FileHash)로 동결을 박는다.
+# autocrlf가 켜진 환경에서 클론하면 LF→CRLF로 바뀌어 동결 검증이 전부 깨진다.
+* -text

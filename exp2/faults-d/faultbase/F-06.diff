@@ -1,0 +1,17 @@
+diff -ru exp2/pristine/faultbase-src/todo/useTodos.ts exp2/faultbase/src/todo/useTodos.ts
+--- exp2/pristine/faultbase-src/todo/useTodos.ts	2026-08-02 17:27:47.295597500 +0900
++++ exp2/faultbase/src/todo/useTodos.ts	2026-08-02 17:28:23.008000700 +0900
+@@ -13,10 +13,11 @@
+ 
+ export function filterTodos(todos: Todo[], filter: Filter): Todo[] {
+   switch (filter) {
++    // F-06: 필터 조건을 뒤집었다 (active ↔ completed).
+     case 'active':
+-      return todos.filter((todo) => !todo.completed)
+-    case 'completed':
+       return todos.filter((todo) => todo.completed)
++    case 'completed':
++      return todos.filter((todo) => !todo.completed)
+     default:
+       return todos
+   }

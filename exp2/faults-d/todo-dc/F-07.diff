@@ -1,0 +1,15 @@
+diff -ru exp2/pristine/todo-dc-src/todo/storage.ts exp2/todo-dc/src/todo/storage.ts
+--- exp2/pristine/todo-dc-src/todo/storage.ts	2026-08-02 17:25:41.791801700 +0900
++++ exp2/todo-dc/src/todo/storage.ts	2026-08-02 17:25:49.567799800 +0900
+@@ -21,9 +21,9 @@
+   }
+ }
+ 
+-export function saveTodos(todos: Todo[]): void {
++export function saveTodos(_todos: Todo[]): void {
+   try {
+-    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
++    // F-07: 저장소에 상태를 쓰는 호출을 제거했다.
+   } catch {
+     // 저장소를 못 쓰는 환경에서도 앱 동작 자체는 막지 않는다.
+   }

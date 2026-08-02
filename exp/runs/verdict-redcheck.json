@@ -1,0 +1,55 @@
+{
+  "label": "redcheck",
+  "at": "2026-08-01T15:35:14.196Z",
+  "gateAC": "0/8",
+  "regression": "pass",
+  "acRunOk": true,
+  "ac": [
+    {
+      "id": "AC-01",
+      "status": "failed"
+    },
+    {
+      "id": "AC-02",
+      "status": "failed"
+    },
+    {
+      "id": "AC-03",
+      "status": "failed"
+    },
+    {
+      "id": "AC-04",
+      "status": "failed"
+    },
+    {
+      "id": "AC-05",
+      "status": "failed"
+    },
+    {
+      "id": "AC-06",
+      "status": "failed"
+    },
+    {
+      "id": "AC-07",
+      "status": "failed"
+    },
+    {
+      "id": "AC-08",
+      "status": "failed"
+    },
+    {
+      "id": "AC-09",
+      "status": "passed"
+    }
+  ],
+  "tampered": [],
+  "strayAc": [],
+  "strayCfg": [],
+  "styleTouched": false,
+  "scriptsIntact": true,
+  "errors": [],
+  "frozen": [
+    "cb4447ebd82dbb7cb4da7152570c1c69b7dcc3546a22a23f109fc36225820e29  ac.vitest.config.ts",
+    "a9bcf3a1e8c9f0a2da23861af0e20a3c8741fd85bdfe57e934c39b65a870e9f3  todo.ac.test.tsx"
+  ]
+}

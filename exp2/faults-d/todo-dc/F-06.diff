@@ -1,0 +1,16 @@
+diff -ru exp2/pristine/todo-dc-src/todo/filter.ts exp2/todo-dc/src/todo/filter.ts
+--- exp2/pristine/todo-dc-src/todo/filter.ts	2026-08-02 17:25:41.789799500 +0900
++++ exp2/todo-dc/src/todo/filter.ts	2026-08-02 17:26:12.021975200 +0900
+@@ -5,9 +5,10 @@
+   switch (filter) {
+     case 'all':
+       return todos;
++    // F-06: 필터 조건을 뒤집었다 (active ↔ completed).
+     case 'active':
+-      return todos.filter((t) => !t.completed);
+-    case 'completed':
+       return todos.filter((t) => t.completed);
++    case 'completed':
++      return todos.filter((t) => !t.completed);
+   }
+ }

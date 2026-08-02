@@ -1,0 +1,5 @@
+{
+  "name": "specfw",
+  "version": "0.1.0",
+  "description": "Write down what the contract says and what it leaves unsaid, as checkable statements, before writing code."
+}

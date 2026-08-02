@@ -1,0 +1,17 @@
+diff -ru exp2/pristine/todo-d-src/todo/todoState.ts exp2/todo-d/src/todo/todoState.ts
+--- exp2/pristine/todo-d-src/todo/todoState.ts	2026-08-02 17:24:30.518523300 +0900
++++ exp2/todo-d/src/todo/todoState.ts	2026-08-02 17:24:56.532457900 +0900
+@@ -53,10 +53,11 @@
+   switch (filter) {
+     case "all":
+       return todos;
++    // F-06: 필터 조건을 뒤집었다 (active ↔ completed).
+     case "active":
+-      return todos.filter((todo) => !todo.completed);
+-    case "completed":
+       return todos.filter((todo) => todo.completed);
++    case "completed":
++      return todos.filter((todo) => !todo.completed);
+   }
+ }
+ 

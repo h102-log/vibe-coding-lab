@@ -1,0 +1,18 @@
+diff -ru exp2/faultbase-pristine-src/todo/useTodos.ts exp2/faultbase/src/todo/useTodos.ts
+--- exp2/faultbase-pristine-src/todo/useTodos.ts	2026-08-02 16:33:55.560434700 +0900
++++ exp2/faultbase/src/todo/useTodos.ts	2026-08-02 16:36:08.450748100 +0900
+@@ -40,12 +40,8 @@
+     return true
+   }, [])
+ 
+-  const toggle = useCallback((id: string) => {
+-    setTodos((prev) =>
+-      prev.map((todo) =>
+-        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+-      ),
+-    )
++  const toggle = useCallback((_id: string) => {
++    // F-03: 앱 상태를 갱신하는 호출을 제거했다.
+   }, [])
+ 
+   const remove = useCallback((id: string) => {

@@ -1,0 +1,20 @@
+diff -ru exp2/pristine/todo-d-src/todo/todoState.ts exp2/todo-d/src/todo/todoState.ts
+--- exp2/pristine/todo-d-src/todo/todoState.ts	2026-08-02 17:24:30.518523300 +0900
++++ exp2/todo-d/src/todo/todoState.ts	2026-08-02 17:24:50.402966900 +0900
+@@ -29,13 +29,9 @@
+   };
+ }
+ 
+-export function toggleTodo(state: TodoState, id: number): TodoState {
+-  return {
+-    ...state,
+-    todos: state.todos.map((todo) =>
+-      todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+-    ),
+-  };
++export function toggleTodo(state: TodoState, _id: number): TodoState {
++  // F-03: 앱 상태를 갱신하는 호출을 제거했다.
++  return state;
+ }
+ 
+ export function deleteTodo(state: TodoState, id: number): TodoState {

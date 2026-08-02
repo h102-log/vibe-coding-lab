@@ -1,0 +1,55 @@
+{
+  "label": "db-r0",
+  "at": "2026-08-02T08:13:16.191Z",
+  "gateAC": "8/8",
+  "regression": "pass",
+  "acRunOk": true,
+  "ac": [
+    {
+      "id": "AC-01",
+      "status": "passed"
+    },
+    {
+      "id": "AC-02",
+      "status": "passed"
+    },
+    {
+      "id": "AC-03",
+      "status": "passed"
+    },
+    {
+      "id": "AC-04",
+      "status": "passed"
+    },
+    {
+      "id": "AC-05",
+      "status": "passed"
+    },
+    {
+      "id": "AC-06",
+      "status": "passed"
+    },
+    {
+      "id": "AC-07",
+      "status": "passed"
+    },
+    {
+      "id": "AC-08",
+      "status": "passed"
+    },
+    {
+      "id": "AC-09",
+      "status": "passed"
+    }
+  ],
+  "tampered": [],
+  "strayAc": [],
+  "strayCfg": [],
+  "styleTouched": false,
+  "scriptsIntact": true,
+  "errors": [],
+  "frozen": [
+    "cb4447ebd82dbb7cb4da7152570c1c69b7dcc3546a22a23f109fc36225820e29  ac.vitest.config.ts",
+    "1445df74c9fcbbd4f2f263c132740cf5857bf54debc0523075e21e2bddb4e478  todo.ac.test.tsx"
+  ]
+}
