@@ -12,11 +12,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---|---|---|---|---|
 | `exp/` | 프로세스 강제(SDD)가 첫 제출 점수를 올리는가 | 종료 | `exp/FROZEN.md` | `docs/REPORT.md` — 이득 없음 |
 | `exp2/` | "쓴 테스트를 남겨라"가 회귀 자산을 만드는가 | 종료 | `exp2/FROZEN2.md` | `docs/REPORT2.md` — 만든다(mutation 3/4) |
-| `exp3/` | 남은 자산이 새 세션에서 회수되는가(`assetRun`) | 진행 중 | `exp3/FROZEN3.md` | `docs/REPORT3.md`(예정) |
+| `exp3/` | 남은 자산이 새 세션에서 회수되는가(`assetRun`) | 종료 | `exp3/FROZEN3.md` | `docs/REPORT3.md` — 회수된다(새 세션 3/3) |
+
+**세 실험이 전부 끝났고 `exp3/`도 이제 동결이다.** 다음은 실험이 아니라 **실사용** 트랙이고,
+설계는 `docs/next/2026-08-02/r8.md`에 있다. **대상 프로젝트가 정해지기 전에는 시작하지 않는다**(r8 §7-①).
 
 ## 절대 규칙
 
-1. **`exp/`·`exp2/`는 한 글자도 고치지 않는다.** 새 트랙은 **새 디렉터리**를 만들고 자산을 **복사만** 한다 (`exp3/`가 그 예 — `judge.mjs`·`ac/`·`selftest.*`가 `exp/`·`exp2/`의 바이트 동일 사본).
+1. **`exp/`·`exp2/`·`exp3/`는 한 글자도 고치지 않는다.** 세 트랙 전부 종료·동결이다. 새 트랙은 **새 디렉터리**를 만들고 자산을 **복사만** 한다 (`exp3/`가 그 예 — `judge.mjs`·`ac/`·`selftest.*`가 `exp/`·`exp2/`의 바이트 동일 사본).
 2. **`ac/`는 파일을 *추가*하기만 해도 동결이 깨진다.** `FROZEN*.md` §0이 글롭 전체를 해시로 박는다.
 3. **동결 자산 수정 = 양쪽 그룹 전체 재실행.** 예외는 계측기(`logprobe.mjs`)뿐이고, 그 경우 **기존 세션 전수 재측정** + 사유 기록이 조건이다.
 4. **에이전트에게 `FROZEN*.md`·`judge.mjs`·`ac/`를 절대 주지 않는다.** 투입은 `prompt-*.md` + `CONTRACT*.md`뿐.
