@@ -1,0 +1,14 @@
+diff -ru exp2/faultbase-pristine-src/todo/TodoItem.tsx exp2/faultbase/src/todo/TodoItem.tsx
+--- exp2/faultbase-pristine-src/todo/TodoItem.tsx	2026-08-02 16:33:55.561434900 +0900
++++ exp2/faultbase/src/todo/TodoItem.tsx	2026-08-02 16:35:59.533889500 +0900
+@@ -20,10 +20,8 @@
+       <button
+         data-testid="todo-delete"
+         type="button"
+-        aria-label={`${todo.title} 삭제`}
+         onClick={() => onDelete(todo.id)}
+       >
+-        삭제
+       </button>
+     </li>
+   )

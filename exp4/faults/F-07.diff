@@ -1,0 +1,15 @@
+diff -ru exp2/faultbase-pristine-src/todo/storage.ts exp2/faultbase/src/todo/storage.ts
+--- exp2/faultbase-pristine-src/todo/storage.ts	2026-08-02 16:33:55.560434700 +0900
++++ exp2/faultbase/src/todo/storage.ts	2026-08-02 16:35:50.656071200 +0900
+@@ -28,9 +28,9 @@
+   }
+ }
+ 
+-export function saveTodos(todos: Todo[]): void {
++export function saveTodos(_todos: Todo[]): void {
+   try {
+-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(todos))
++    // F-07: 저장소에 상태를 쓰는 호출을 제거했다.
+   } catch {
+     // 저장소를 쓸 수 없으면 메모리 상태만 유지한다.
+   }
