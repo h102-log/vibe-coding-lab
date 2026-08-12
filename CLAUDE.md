@@ -13,13 +13,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `exp/` | 프로세스 강제(SDD)가 첫 제출 점수를 올리는가 | 종료 | `exp/FROZEN.md` | `docs/REPORT.md` — 이득 없음 |
 | `exp2/` | "쓴 테스트를 남겨라"가 회귀 자산을 만드는가 | 종료 | `exp2/FROZEN2.md` | `docs/REPORT2.md` — 만든다(mutation 3/4) |
 | `exp3/` | 남은 자산이 새 세션에서 회수되는가(`assetRun`) | 종료 | `exp3/FROZEN3.md` | `docs/REPORT3.md` — 회수된다(새 세션 3/3) |
+| 실사용 (`docs/usage/`) | 요구가 불완전할 때 §2가 침묵 지점을 미리 잡는가 | 종료 | `docs/next/2026-08-02/r8.md` | `docs/REPORT4.md` — 소수(`specHit` 1/4) |
 
-**세 실험이 전부 끝났고 `exp3/`도 이제 동결이다.** 다음은 실험이 아니라 **실사용** 트랙이고, **이미 굴러가는 중이다.**
-설계는 `docs/next/2026-08-02/r8.md`(무엇을 관측하나), 개시는 `r9.md`(무엇을 만드나), 첫 세션 절차는 `docs/next/2026-08-03/r10.md`,
-**두 번째 세션부터 종료까지는 같은 폴더의 `r11.md`가 유효한 지시서다** (충돌 시 r8 > r9 > r10 > r11).
-대상은 **`C:\Users\bhy99\proj\ai-prompt-vault`** — **별도 리포**이고 이 리포에는 관측 기록(`docs/usage/`)만 남는다.
-첫 세션은 2026-08-02에 끝났고(`fdf916e`), 남은 하한은 **그 이후 세션 3회**(r11 §3.3) · 만료 **2026-08-30**.
-**세션은 cwd가 대상 리포일 때만 성립한다** — 여기서 대신 쓰면 43줄이 로드되지 않아 트랙이 무효다(r10 §2).
+**네 트랙이 전부 끝났다.** 실사용 트랙은 2026-08-12 마일스톤 달성으로 종료됐다 (사건 4건 · `specHit` 1/4,
+사전 등록 문장은 «소수» 행 — `docs/REPORT4.md`). 대상이었던 `C:\Users\bhy99\proj\ai-prompt-vault`는
+별도 리포의 살아 있는 프로젝트로 남고, 이 리포에는 관측 기록(`docs/usage/`)과 리포트만 남는다.
+지시서는 r8~r11(`docs/next/`), 충돌 시 r8 > r9 > r10 > r11. **다음 표적(문안 개정 = 실험 4)은 아직 설계 전이다** —
+REPORT4 §6-1(재고 선구현)·§6-3(요청 모호성)이 재료다.
 
 ## 절대 규칙
 
