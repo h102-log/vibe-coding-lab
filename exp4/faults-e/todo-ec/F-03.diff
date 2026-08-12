@@ -1,0 +1,22 @@
+diff -ru exp4/pristine/todo-ec-src/todos/useTodos.ts exp4/todo-ec/src/todos/useTodos.ts
+--- exp4/pristine/todo-ec-src/todos/useTodos.ts	2026-08-12 23:22:21.633329200 +0900
++++ exp4/todo-ec/src/todos/useTodos.ts	2026-08-12 23:22:35.472655500 +0900
+@@ -1,6 +1,6 @@
+ import { useCallback, useEffect, useState } from 'react';
+ import type { Todo } from './model';
+-import { addTodo, removeTodo, toggleTodo } from './model';
++import { addTodo, removeTodo } from './model';
+ import { loadTodos, saveTodos } from './storage';
+ 
+ export function useTodos() {
+@@ -17,8 +17,8 @@
+     setTodos((prev) => addTodo(prev, rawTitle));
+   }, []);
+ 
+-  const toggle = useCallback((id: string) => {
+-    setTodos((prev) => toggleTodo(prev, id));
++  const toggle = useCallback((_id: string) => {
++    // F-03: 앱 상태를 갱신하는 호출을 제거했다.
+   }, []);
+ 
+   const remove = useCallback((id: string) => {

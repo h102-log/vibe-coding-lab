@@ -1,0 +1,15 @@
+diff -ru exp4/pristine/todo-e-src/todos.ts exp4/todo-e/src/todos.ts
+--- exp4/pristine/todo-e-src/todos.ts	2026-08-12 23:21:08.092765300 +0900
++++ exp4/todo-e/src/todos.ts	2026-08-12 23:21:28.037008200 +0900
+@@ -25,8 +25,9 @@
+ 
+ /** U18·U19·U20 — 필터에 걸리는 항목만 골라낸다. */
+ export function visibleTodos(todos: Todo[], filter: Filter): Todo[] {
+-  if (filter === 'active') return todos.filter((todo) => !todo.done);
+-  if (filter === 'completed') return todos.filter((todo) => todo.done);
++  // F-06: 필터 조건을 뒤집었다 (active ↔ completed).
++  if (filter === 'active') return todos.filter((todo) => todo.done);
++  if (filter === 'completed') return todos.filter((todo) => !todo.done);
+   return todos;
+ }
+ 

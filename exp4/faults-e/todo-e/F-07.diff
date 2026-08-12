@@ -1,0 +1,15 @@
+diff -ru exp4/pristine/todo-e-src/todos.ts exp4/todo-e/src/todos.ts
+--- exp4/pristine/todo-e-src/todos.ts	2026-08-12 23:21:08.092765300 +0900
++++ exp4/todo-e/src/todos.ts	2026-08-12 23:21:37.705161200 +0900
+@@ -67,9 +67,9 @@
+ }
+ 
+ /** P1·P5 — 목록을 저장한다. 저장소를 쓸 수 없어도 앱은 계속 돈다. */
+-export function saveTodos(todos: Todo[]): void {
++export function saveTodos(_todos: Todo[]): void {
+   try {
+-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(todos));
++    // F-07: 저장소에 상태를 쓰는 호출을 제거했다.
+   } catch {
+     // 저장 실패는 화면 동작에 영향을 주지 않는다.
+   }

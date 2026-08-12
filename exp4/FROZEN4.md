@@ -363,5 +363,62 @@ exp4/
 
 ---
 
+## 11. 실행 기록 (2026-08-12)
+
+### 11.1 (e) 3런 — 전부 유효
+
+| 앱 | 세션 | `gateAC` | `regression` | `acRunOk` | denials | cost | turns | 벽시계 | `modelUsage` |
+|---|---|---|---|---|---|---|---|---|---|
+| `todo-e` | `e1…000` | 8/8 | pass | true | 0 | $2.4984 | 31 | 652.8초 | `claude-opus-5` ✓ |
+| `todo-eb` | `e1…001` | 8/8 | pass | true | 0 | $3.0781 | 44 | 765.5초 | `claude-opus-5` ✓ |
+| `todo-ec` | `e1…002` | 8/8 | pass | true | 0 | $4.1146 | 51 | 926.3초 | `claude-opus-5` ✓ |
+
+무효 라운드 0건 — 재실행 없음. `modelUsage` 키는 (d)의 2026-08-02 실측과 동일하게
+`claude-opus-5` + `claude-haiku-4-5-20251001`(하네스 보조 호출) 2개 — (d) 3런 JSON과 같은 구성이라 멈춤 ② 아님.
+`tampered`·`strayAc` 전부 빈 배열 ×3. `todo-eb`만 `strayCfg: ["vitest.config.ts"]` — 에이전트 설정이
+감시 이름과 겹쳤을 뿐, 채점은 동결 설정으로만 돌므로 영향 없음(FROZEN2 §11.1 선례와 동일).
+
+### 11.2 처치 도달 — 3/3
+
+| 앱 | 남긴 테스트 | 케이스 | 단언 | `testsDeleted` | 탈출구(«옮기지 못한 문장과 이유») |
+|---|---|---|---|---|---|
+| `todo-e` | `tests/spec/todo.spec.test.tsx` | 44 | 120 | **0** | 이행 — M16·M17·M3·M6·U16·U36 (전부 절차성) |
+| `todo-eb` | `src/todo.spec.tsx` | 36 | 100 | **0** | 이행 — 러너 순환 1건 |
+| `todo-ec` | `tests/spec/spec.test.tsx` | 58 | 140 | **0** | 이행 — S8·S10·S12·S13·S11 일부 (전부 절차성) |
+
+### 11.3 1순위 `mutationScore` — 실측 (원자료 `exp4/runs/mutation-*.txt`)
+
+| 조건 | 앱 | baseline | F-07 | F-08 | F-03 | F-06 | **score** |
+|---|---|---|---|---|---|---|---|
+| (d) | `todo-d{,b,c}` | — | killed ×3 | **survived ×3** | killed ×3 | killed ×3 | **3/4 ×3** (FROZEN2 §11.3 재게시) |
+| (e) | `todo-e` | survived(0) | killed(7) | **survived(0)** | killed(14) | killed(5) | **3/4** |
+| (e) | `todo-eb` | **killed(1)** ← §11.4 | killed(2) | **killed(2)** | killed(10) | killed(4) | **4/4** |
+| (e) | `todo-ec` | survived(0) | killed(2) | **survived(0)** | killed(18) | killed(8) | **3/4** |
+
+괄호는 실패 케이스 수. **중앙값 (e) 3/4** (집계 방식은 FROZEN2 §11.3 상속). 주 판정 F-08: **survived 2/3**.
+
+### 11.4 실행 중 관측 — 판정에 관련된 진단 2건
+
+1. **`todo-eb`의 baseline이 killed(1)** — 실패는 `S-14`(스타일 파일 mtime 비교 테스트) 1건.
+   `mutation.sh`의 복원(디렉터리 복사)이 mtime을 갱신해 깨진다(7ms 차 — 복사 순서 인공물). 에이전트
+   세션에서는 통과했던 테스트로, 측정 절차의 파일 복사와 비양립인 환경 취약 테스트다. 2회 재현 확인.
+   **판정 영향 없음**: baseline 실패분을 빼는 보수적 판독(델타)으로도 `todo-eb`의 4개 결함 전부
+   추가 실패가 있어(2·2·10·4 > 1) killed 유지. 특히 주 판정 F-08은 주입 상태에서 실패 테스트를
+   이름으로 확인했다 — `S-16`(«화면 문구가 한국어 하나다» 불변식)이 결함으로 실제 실패한다.
+2. **주입 시 동반 수정 2건 (FROZEN2 §4.4 기록 의무)**: `todo-e`(App.tsx)·`todo-ec`(useTodos.ts)의
+   F-03은 핸들러를 비우면 `toggleTodo` import가 미사용이 되어, 컴파일 가능성 유지(FROZEN2 §2.3,
+   `_` 접두사와 같은 범주)를 위해 해당 import를 함께 제거했다. diff에 그대로 남아 있다.
+
+### 11.5 무결성
+
+- `exp2/` 전수 트리 해시(측정 후 재실측) = `fa6c7dda…` — §0.1과 동일, **읽기만 했다.**
+- `exp/`·`exp2/`·`exp3/` git 클린 ×3 (측정 후 확인).
+- postcheck ×3: 복원 뒤 `gateAC 8/8`·`regression pass`·`acRunOk true` (`verdict-*-r0-postcheck.json`).
+- `mutation.sh` 복원 해시 일치 ×3 (스크립트 자체 검사) + 주입 diff 12건 저장(`faults-e/<app>/<F>.diff`).
+- `sent-e-r0.txt` = `exp/runs/sent-b2t-r0.txt` 바이트 동일(2,772B, diff 0줄). 런 디렉터리 3개의
+  시작 상태 트리 해시(node_modules 제외) = `seed/` 등재값 `9c332410…` ×3.
+
+---
+
 > **이 문서가 완성되기 전에는 (e)를 실행하지 않는다.**
 > 완성 시각 이후의 §0 해시 변경은 전부 동결 위반이다. **§11(실행 기록)은 실행 후 추가되며 이 규칙의 대상이 아니다.**

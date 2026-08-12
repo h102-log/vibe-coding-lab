@@ -1,0 +1,13 @@
+diff -ru exp4/pristine/todo-ec-src/todos/TodoItem.tsx exp4/todo-ec/src/todos/TodoItem.tsx
+--- exp4/pristine/todo-ec-src/todos/TodoItem.tsx	2026-08-12 23:22:21.632327600 +0900
++++ exp4/todo-ec/src/todos/TodoItem.tsx	2026-08-12 23:23:14.699963900 +0900
+@@ -19,8 +19,7 @@
+       />
+       {/* U12: 완료 여부와 무관하게 텍스트는 제목 그대로다. */}
+       <span data-testid="todo-title">{todo.title}</span>
+-      <button data-testid="todo-delete" type="button" aria-label={`${todo.title} 삭제`} onClick={() => onDelete(todo.id)}>
+-        삭제
++      <button data-testid="todo-delete" type="button" onClick={() => onDelete(todo.id)}>
+       </button>
+     </li>
+   );

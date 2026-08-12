@@ -1,0 +1,8 @@
+백업 생성: exp4/pristine/todo-e-src
+--- todo-e : 주입 없는 상태의 자체 테스트 ---
+baseline {"files":1,"total":44,"failed":0,"verdict":"survived"}
+F-03 {"files":1,"total":44,"failed":14,"verdict":"killed"}
+F-06 {"files":1,"total":44,"failed":5,"verdict":"killed"}
+F-07 {"files":1,"total":44,"failed":7,"verdict":"killed"}
+F-08 {"files":1,"total":44,"failed":0,"verdict":"survived"}
+--- 복원 완료 (src 해시 = f166ec4543833d8709483202fb1b0ebfb08360b024c76b638df7c44f51fcfc96) ---
