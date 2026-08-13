@@ -1,0 +1,27 @@
+{
+  "session": "e1000000-0000-4000-8000-000000000002",
+  "firstImplOracle": "7/8",
+  "firstImplFailed": [
+    "AC-07"
+  ],
+  "firstOracle": "0/8",
+  "firstFailed": [
+    "AC-01",
+    "AC-02",
+    "AC-03",
+    "AC-04",
+    "AC-05",
+    "AC-06",
+    "AC-07",
+    "AC-08"
+  ],
+  "oracleRuns": 5,
+  "oracleTrace": "0/8[RED] → 7/8 → 8/8 → 8/8 → 8/8",
+  "ownTestRuns": 4,
+  "ownTestTrace": "58/58 → 실행실패 → 실행실패 → 실행실패",
+  "testsWritten": 1,
+  "testsDeleted": 0,
+  "testFiles": [
+    "spec/spec.test.tsx"
+  ]
+}

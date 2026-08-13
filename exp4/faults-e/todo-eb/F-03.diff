@@ -1,0 +1,16 @@
+diff -ru exp4/pristine/todo-eb-src/todos/useTodos.ts exp4/todo-eb/src/todos/useTodos.ts
+--- exp4/pristine/todo-eb-src/todos/useTodos.ts	2026-08-12 23:21:57.525454900 +0900
++++ exp4/todo-eb/src/todos/useTodos.ts	2026-08-12 23:22:02.687226700 +0900
+@@ -26,10 +26,8 @@
+     return true;
+   };
+ 
+-  const toggle = (id: number): void => {
+-    setTodos((prev) =>
+-      prev.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)),
+-    );
++  const toggle = (_id: number): void => {
++    // F-03: 앱 상태를 갱신하는 호출을 제거했다.
+   };
+ 
+   const remove = (id: number): void => {

@@ -1,0 +1,20 @@
+{
+  "session": "e1000000-0000-4000-8000-000000000000",
+  "firstImplOracle": "7/8",
+  "firstImplFailed": [
+    "AC-07"
+  ],
+  "firstOracle": "7/8",
+  "firstFailed": [
+    "AC-07"
+  ],
+  "oracleRuns": 3,
+  "oracleTrace": "7/8 → 8/8 → 8/8",
+  "ownTestRuns": 2,
+  "ownTestTrace": "0/0 → 44/44",
+  "testsWritten": 1,
+  "testsDeleted": 0,
+  "testFiles": [
+    "spec/todo.spec.test.tsx"
+  ]
+}

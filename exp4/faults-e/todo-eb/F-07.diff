@@ -1,0 +1,15 @@
+diff -ru exp4/pristine/todo-eb-src/todos/storage.ts exp4/todo-eb/src/todos/storage.ts
+--- exp4/pristine/todo-eb-src/todos/storage.ts	2026-08-12 23:21:57.526454800 +0900
++++ exp4/todo-eb/src/todos/storage.ts	2026-08-12 23:22:12.015198600 +0900
+@@ -26,9 +26,9 @@
+ }
+ 
+ /** 저장에 실패해도(용량 초과·저장소 비활성) 화면 동작은 그대로 유지한다. */
+-export function saveTodos(todos: Todo[]): void {
++export function saveTodos(_todos: Todo[]): void {
+   try {
+-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(todos));
++    // F-07: 저장소에 상태를 쓰는 호출을 제거했다.
+   } catch {
+     // 무시한다.
+   }

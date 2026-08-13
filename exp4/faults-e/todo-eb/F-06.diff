@@ -1,0 +1,15 @@
+diff -ru exp4/pristine/todo-eb-src/App.tsx exp4/todo-eb/src/App.tsx
+--- exp4/pristine/todo-eb-src/App.tsx	2026-08-12 23:21:57.520446600 +0900
++++ exp4/todo-eb/src/App.tsx	2026-08-12 23:22:07.379178000 +0900
+@@ -16,8 +16,9 @@
+   const [draft, setDraft] = useState('');
+ 
+   const visible = todos.filter((todo) => {
+-    if (filter === 'active') return !todo.completed;
+-    if (filter === 'completed') return todo.completed;
++    // F-06: 필터 조건을 뒤집었다 (active ↔ completed).
++    if (filter === 'active') return todo.completed;
++    if (filter === 'completed') return !todo.completed;
+     return true;
+   });
+ 

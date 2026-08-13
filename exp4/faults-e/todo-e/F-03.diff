@@ -1,0 +1,22 @@
+diff -ru exp4/pristine/todo-e-src/App.tsx exp4/todo-e/src/App.tsx
+--- exp4/pristine/todo-e-src/App.tsx	2026-08-12 23:21:08.091765400 +0900
++++ exp4/todo-e/src/App.tsx	2026-08-12 23:21:18.763900400 +0900
+@@ -8,7 +8,6 @@
+   remainingCount,
+   removeTodo,
+   saveTodos,
+-  toggleTodo,
+   visibleTodos,
+ } from './todos';
+ 
+@@ -70,7 +69,9 @@
+               type="checkbox"
+               checked={todo.done}
+               aria-label={`${todo.title} 완료`}
+-              onChange={() => setTodos((prev) => toggleTodo(prev, todo.id))}
++              onChange={() => {
++                // F-03: 앱 상태를 갱신하는 호출을 제거했다.
++              }}
+             />
+             <span data-testid="todo-title">{todo.title}</span>
+             <button
