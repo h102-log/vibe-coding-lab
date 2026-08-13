@@ -1,0 +1,7 @@
+src/textkit.ts 의 truncate 함수를 확장하라: 말줄임표 문자열을 선택적 세 번째 인자로 받는다.
+
+truncate(s: string, max: number, ellipsis?: string): string — 잘릴 때 끝에 "…" 대신 ellipsis를 붙인다(기본값 "…").
+결과의 글자 수는 max를 넘지 않아야 하고, 서로게이트 쌍을 반 토막 내면 안 되는 규칙은 그대로다.
+세 번째 인자를 생략하면 기존과 완전히 동일하게 동작한다.
+
+완료 조건: npm run build 가 종료 코드 0으로 끝난다.

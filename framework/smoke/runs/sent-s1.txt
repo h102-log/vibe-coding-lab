@@ -1,0 +1,13 @@
+TypeScript 모듈을 구현하라. 프로젝트는 준비돼 있다 (vitest·typescript 설치됨, npm run build = tsc 타입체크).
+
+src/textkit.ts 에 다음 세 함수를 구현한다:
+
+1. slugify(title: string): string — 제목을 URL 슬러그로 바꾼다.
+   앞뒤 공백을 제거하고, 연속 공백은 하이픈 1개로 바꾸고, 영문 대문자는 소문자로 바꾼다.
+   한글은 그대로 둔다. 결과 슬러그의 앞뒤에 하이픈이 남으면 안 된다.
+2. parseTags(input: string): string[] — 쉼표로 구분된 태그 문자열을 배열로 바꾼다.
+   각 태그는 앞뒤 공백을 제거하고, 빈 태그는 버리고, 중복은 첫 등장만 남긴다.
+3. truncate(s: string, max: number): string — 글자 수가 max를 넘으면 잘라서 끝에 "…"(1글자)를 붙인다.
+   결과의 글자 수는 max를 넘지 않는다. 이모지 같은 서로게이트 쌍을 반 토막 내면 안 된다.
+
+완료 조건: npm run build 가 종료 코드 0으로 끝난다.
