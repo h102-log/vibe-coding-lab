@@ -22,7 +22,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **실험 4(§4 문안 개정)도 2026-08-12 종료됐다** — «전부 옮겨라»를 얹어도 중앙값 3/4에 머물렀고(F-08
 survived 2/3), 갭은 §4(문장→테스트 전이)가 아니라 **§2(침묵 지점 포착)에 있음**이 관측됐다
 (`docs/REPORT5.md` §6). 남은 축(§1·§2)은 통제 실험으로 못 재므로(삼각 모순 — REPORT2 §6.3·r13 §1)
-**다음은 프레임워크 v0.1 + 실사용 2회차다** — 다음 세션 지시서는 `docs/next/2026-08-12/r15.md`.
+**다음은 프레임워크 v0.1 + 실사용 2회차다** — v0.1 1단계(tdd)는 r16(착수)~r18(재점검 종결)로
+끝났고, tdd 산출물 계측기 `framework/verify-tdd.mjs`가 r20으로 신설됐다. 최신 세션 지시서는
+`docs/next/2026-08-14/r20.md`.
 
 ## 절대 규칙
 
@@ -31,11 +33,11 @@ survived 2/3), 갭은 §4(문장→테스트 전이)가 아니라 **§2(침묵 �
 3. **동결 자산 수정 = 양쪽 그룹 전체 재실행.** 예외는 계측기(`logprobe.mjs`)뿐이고, 그 경우 **기존 세션 전수 재측정** + 사유 기록이 조건이다.
 4. **에이전트에게 `FROZEN*.md`·`judge.mjs`·`ac/`를 절대 주지 않는다.** 투입은 `prompt-*.md` + `CONTRACT*.md`뿐.
 5. **결과를 본 뒤에 지표·조건·프롬프트를 바꾸지 않는다.** 재실행 사유는 `FROZEN3.md` §7.1 화이트리스트(계측 실패 2종)뿐.
-6. 진행 중 트랙의 `runs/`·앱 디렉터리는 실측 원문이다. 덮어쓰면 복구 경로가 재실행밖에 없다.
+6. 진행 중 트랙의 `runs/`·앱 디렉터리는 실측 원문이다. **`framework/smoke/`도 여기 포함된다** — 스모크 앱들은 실측 원문이면서 동시에 `framework/verify-tdd.mjs`의 회귀 감시 픽스처다(r20 §4). 덮어쓰면 복구 경로가 재실행밖에 없다.
 
 ## 하네스(Claude Code 커스터마이제이션)
 
-이 리포에 등록된 것은 `.claude/skills/thought-dump/` 하나와 `.claude/settings.local.json`의 permissions 2줄뿐이다. 프로젝트 훅·서브에이전트·커맨드는 **없다** — 프레임워크 개발이 아직 시작되지 않았으므로 등록할 반복 작업이 없다.
+이 리포에 등록된 것은 `.claude/skills/thought-dump/` 하나와 `.claude/settings.local.json`의 permissions 2줄뿐이다. 프로젝트 훅·서브에이전트·커맨드는 **없다** — 프레임워크 v0.1은 착수됐지만(`framework/` — tdd 스킬·스모크·verify 계측), 처치는 런에 `--append-system-prompt`로만 들어가고 계측은 실험자가 밖에서 돌리므로 하네스에 등록할 것이 없다.
 
 ⚠️ **`exp*/fw*/skills/spec/SKILL.md` 5개는 스킬처럼 생겼지만 하네스가 아니다.** 실험의 **처치물**이고 §0에 해시로 동결돼 있다. `~/.claude/skills`나 `.claude/skills`로 설치하면 동결 위반이자 실험자 세션 오염이다. 런에는 `--append-system-prompt`로만 들어간다.
 
@@ -62,6 +64,10 @@ bash exp2/faultcheck.sh F-07          # 결함을 AC 오라클로 채점 (인자
 
 # 앱 안에서 오라클 1회 (사람이 실패 원문을 읽을 때)
 cd exp3/b2t && npx vitest run --config tests/ac/ac.vitest.config.ts 2>&1 | tail -50
+
+# tdd 산출물 판정 재료 (계측 — 에이전트에게 절대 주지 않는다. 해당 앱 npm ci 선행)
+node framework/verify-tdd.mjs <app-dir> <label>   # → framework/smoke/runs/verify-<label>.json
+node framework/verify-tdd.mjs --selftest          # 음성 픽스처 4종, 기대값은 r20 §4 표와 대조
 ```
 
 `exp3/selftest.sh`는 사본이지만 내부에서 `exp2/selftest.vitest.config.ts`를 복사해 쓴다(내용 동일). 고치지 말고 `exp2/` 쪽을 그대로 호출하면 된다.
