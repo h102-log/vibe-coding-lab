@@ -1,0 +1,87 @@
+{
+  "label": "selftest-3-genericname",
+  "appDir": "C:/Users/bhy99/AppData/Local/Temp/verify-tdd-selftest-3-genericname-eICiiW/app",
+  "when": "2026-08-14T09:37:30.293Z",
+  "patternListVersion": 1,
+  "vitestVersion": null,
+  "testFiles": [
+    {
+      "path": "tests/_scratch.test.ts",
+      "cases": null,
+      "passed": null,
+      "failed": null,
+      "header": "/**\n * slugify(title)가 지키는 요구 (과제 명세 1항):\n *\n *   \"제목을 URL 슬러그로 바꾼다. 앞뒤 공백을 제거하고, 연속 공백은 하이픈 1개로\n *    바꾸고, 영문 대문자는 소문자로 바꾼다. 한글은 그대로 둔다. 결과 슬러그의\n *    앞뒤에 하이픈이 남으면 안 된다.\"\n *\n * (이 저장소에는 SPEC.md가 없어 과제 명세문을 그대로 인용한다.)\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 8,
+          "text": "* (이 저장소에는 SPEC.md가 없어 과제 명세문을 그대로 인용한다.)"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": "generic: scratch"
+    },
+    {
+      "path": "tests/parse-tags-trims-drops-empty-dedupes.test.ts",
+      "cases": null,
+      "passed": null,
+      "failed": null,
+      "header": "/**\n * parseTags(input)가 지키는 요구 (과제 명세 2항):\n *\n *   \"쉼표로 구분된 태그 문자열을 배열로 바꾼다. 각 태그는 앞뒤 공백을 제거하고,\n *    빈 태그는 버리고, 중복은 첫 등장만 남긴다.\"\n *\n * (이 저장소에는 SPEC.md가 없어 과제 명세문을 그대로 인용한다.)\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 7,
+          "text": "* (이 저장소에는 SPEC.md가 없어 과제 명세문을 그대로 인용한다.)"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "tests/truncate-custom-ellipsis-respects-max-and-surrogate-pairs.test.ts",
+      "cases": null,
+      "passed": null,
+      "failed": null,
+      "header": "/**\n * truncate(s, max, ellipsis?)의 세 번째 인자가 지키는 요구 (확장 과제 명세):\n *\n *   \"truncate(s: string, max: number, ellipsis?: string): string — 잘릴 때 끝에\n *    \\\"…\\\" 대신 ellipsis를 붙인다(기본값 \\\"…\\\"). 결과의 글자 수는 max를 넘지 않아야\n *    하고, 서로게이트 쌍을 반 토막 내면 안 되는 규칙은 그대로다. 세 번째 인자를\n *    생략하면 기존과 완전히 동일하게 동작한다.\"\n *\n * (이 저장소에는 SPEC.md가 없어 과제 명세문을 그대로 인용한다.)\n *\n * 기본값 \"…\"만 쓰던 시절의 요구는\n * tests/truncate-respects-max-and-surrogate-pairs.test.ts가 그대로 지킨다.\n * 이 파일은 그 위에 얹힌 ellipsis 인자만 다룬다.\n *\n * 말줄임표는 1글자라는 보장이 없으므로, 잘라낼 본문 길이는 max에서 말줄임표의\n * 코드 포인트 수를 뺀 만큼이다. 본문이든 말줄임표든 코드 포인트 단위로 잘라야\n * 서로게이트 쌍이 반 토막 나지 않는다.\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 9,
+          "text": "* (이 저장소에는 SPEC.md가 없어 과제 명세문을 그대로 인용한다.)"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "tests/truncate-respects-max-and-surrogate-pairs.test.ts",
+      "cases": null,
+      "passed": null,
+      "failed": null,
+      "header": "/**\n * truncate(s, max)가 지키는 요구 (과제 명세 3항):\n *\n *   \"글자 수가 max를 넘으면 잘라서 끝에 \\\"…\\\"(1글자)를 붙인다. 결과의 글자 수는\n *    max를 넘지 않는다. 이모지 같은 서로게이트 쌍을 반 토막 내면 안 된다.\"\n *\n * (이 저장소에는 SPEC.md가 없어 과제 명세문을 그대로 인용한다.)\n *\n * 여기서 \"글자 수\"는 코드 유닛(s.length)이 아니라 코드 포인트 수로 센다 —\n * 서로게이트 쌍을 쪼개지 않으려면 그래야 한다.\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 7,
+          "text": "* (이 저장소에는 SPEC.md가 없어 과제 명세문을 그대로 인용한다.)"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    }
+  ],
+  "totals": {
+    "files": 4,
+    "cases": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "runOk": false,
+  "runError": "vitest 미설치 — node_modules/vitest/vitest.mjs 부재 (r20 §5-6 npm ci 선행)",
+  "verdict": {
+    "A": "run-error",
+    "B": "flags:0",
+    "C": "flags:0",
+    "D": "flags:1"
+  }
+}

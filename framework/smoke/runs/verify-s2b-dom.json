@@ -1,0 +1,71 @@
+{
+  "label": "s2b-dom",
+  "appDir": "C:/Users/bhy99/proj/proj3/framework/smoke/s2b-dom",
+  "when": "2026-08-14T09:37:15.227Z",
+  "patternListVersion": 1,
+  "vitestVersion": "4.1.10",
+  "testFiles": [
+    {
+      "path": "src/App.renders-TagInput.test.tsx",
+      "cases": 2,
+      "passed": 2,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (과제 명세. 이 저장소에는 SPEC.md가 없어 과제 문장을 그대로 인용한다):\n *\n *   \"src/TagInput.tsx 에 태그 입력 컴포넌트 TagInput을 구현하고, src/App.tsx 가 그것을 렌더하게 한다\"\n *\n * App이 TagInput을 렌더에서 빠뜨려도 TagInput 자체 테스트는 모두 통과하므로, 배선을 따로 지킨다.\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (과제 명세. 이 저장소에는 SPEC.md가 없어 과제 문장을 그대로 인용한다):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "src/TagInput.enter-adds-trimmed-nonempty-unique-tag.test.tsx",
+      "cases": 5,
+      "passed": 5,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (과제 명세 2·3항. 이 저장소에는 SPEC.md가 없어 과제 문장을 그대로 인용한다):\n *\n *   \"입력창에서 Enter를 누르면 입력값이 태그로 추가되고 입력창은 비워진다.\n *    태그는 앞뒤 공백을 제거해 저장하고, 공백 제거 후 빈 문자열이면 추가하지 않는다.\"\n *   \"이미 있는 태그와 같은 값이면(공백 제거 후 비교) 다시 추가하지 않는다.\"\n *\n * 명세가 정하지 않아 구현이 택한 것(= 이 테스트가 고정하는 것):\n *   - 중복 입력도 Enter를 누르면 입력창은 비워진다(입력이 소비된 것으로 본다).\n *   - 공백뿐인 입력은 추가도, 입력창 비우기도 하지 않는다(아무 일도 일어나지 않는다).\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (과제 명세 2·3항. 이 저장소에는 SPEC.md가 없어 과제 문장을 그대로 인용한다):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "src/TagInput.remove-button-unrenders-tag-and-empty-state.test.tsx",
+      "cases": 7,
+      "passed": 7,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (과제 명세 1·4·5항. 이 저장소에는 SPEC.md가 없어 과제 문장을 그대로 인용한다):\n *\n *   \"텍스트 입력창 1개와 추가된 태그 목록을 렌더한다.\"\n *   \"각 태그 옆에 제거 버튼이 있고, 누르면 그 태그만 목록에서 사라진다(숨김이 아니라 언렌더).\"\n *   \"태그가 0개일 때는 목록 대신 '태그 없음' 텍스트를 렌더한다.\"\n *\n * '숨김이 아니라 언렌더'는 queryBy*로 검증한다 — RTL의 ByText/ByRole 조회는 CSS로 숨겨진\n * 요소도 찾아내므로, null이 나온다는 것은 DOM에서 실제로 제거됐다는 뜻이다.\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (과제 명세 1·4·5항. 이 저장소에는 SPEC.md가 없어 과제 문장을 그대로 인용한다):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    }
+  ],
+  "totals": {
+    "files": 3,
+    "cases": 14,
+    "passed": 14,
+    "failed": 0
+  },
+  "runOk": true,
+  "runError": null,
+  "verdict": {
+    "A": "pass",
+    "B": "flags:0",
+    "C": "flags:0",
+    "D": "flags:0"
+  }
+}

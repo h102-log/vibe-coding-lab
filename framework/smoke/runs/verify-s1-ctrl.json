@@ -1,0 +1,22 @@
+{
+  "label": "s1-ctrl",
+  "appDir": "C:/Users/bhy99/proj/proj3/framework/smoke/s1-ctrl",
+  "when": "2026-08-14T09:37:10.185Z",
+  "patternListVersion": 1,
+  "vitestVersion": "3.2.7",
+  "testFiles": [],
+  "totals": {
+    "files": 0,
+    "cases": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "runOk": true,
+  "runError": null,
+  "verdict": {
+    "A": "none",
+    "B": "flags:0",
+    "C": "flags:0",
+    "D": "flags:0"
+  }
+}
