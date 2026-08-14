@@ -1,0 +1,34 @@
+{
+  "label": "e1-ctrl",
+  "appDir": "C:/Users/bhy99/proj/proj3/framework/verify-eval/e1-ctrl",
+  "when": "2026-08-14T13:33:43.600Z",
+  "patternListVersion": 1,
+  "vitestVersion": "3.2.7",
+  "testFiles": [
+    {
+      "path": "tests/textkit.test.ts",
+      "cases": 12,
+      "passed": 12,
+      "failed": 0,
+      "header": null,
+      "headerPresent": false,
+      "specRefs": [],
+      "envFlags": [],
+      "nameFlag": null
+    }
+  ],
+  "totals": {
+    "files": 1,
+    "cases": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "runOk": true,
+  "runError": null,
+  "verdict": {
+    "A": "pass",
+    "B": "flags:1",
+    "C": "flags:0",
+    "D": "flags:0"
+  }
+}

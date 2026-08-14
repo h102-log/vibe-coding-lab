@@ -1,7 +1,7 @@
 {
   "label": "selftest-4-timeout",
-  "appDir": "C:/Users/bhy99/AppData/Local/Temp/verify-tdd-selftest-4-timeout-tEqVxA/app",
-  "when": "2026-08-14T09:39:30.514Z",
+  "appDir": "C:/Users/bhy99/AppData/Local/Temp/verify-tdd-selftest-4-timeout-gGFxdr/app",
+  "when": "2026-08-14T13:32:46.983Z",
   "patternListVersion": 1,
   "vitestVersion": "3.2.7",
   "testFiles": [

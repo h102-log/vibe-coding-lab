@@ -1,0 +1,71 @@
+{
+  "label": "e1-tdd",
+  "appDir": "C:/Users/bhy99/proj/proj3/framework/verify-eval/e1-tdd",
+  "when": "2026-08-14T13:33:40.203Z",
+  "patternListVersion": 1,
+  "vitestVersion": "3.2.7",
+  "testFiles": [
+    {
+      "path": "tests/parse-tags-trims-drops-empty-and-keeps-first-duplicate.test.ts",
+      "cases": 6,
+      "passed": 6,
+      "failed": 0,
+      "header": null,
+      "headerPresent": false,
+      "specRefs": [
+        {
+          "line": 5,
+          "text": "* 지키는 요구 (SPEC.md 없음 — 과제 요구사항 2번):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "tests/slugify-normalizes-spaces-case-and-edge-hyphens.test.ts",
+      "cases": 8,
+      "passed": 8,
+      "failed": 0,
+      "header": null,
+      "headerPresent": false,
+      "specRefs": [
+        {
+          "line": 5,
+          "text": "* 지키는 요구 (SPEC.md 없음 — 과제 요구사항 1번):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "tests/truncate-respects-max-length-and-keeps-surrogate-pairs-whole.test.ts",
+      "cases": 8,
+      "passed": 8,
+      "failed": 0,
+      "header": null,
+      "headerPresent": false,
+      "specRefs": [
+        {
+          "line": 5,
+          "text": "* 지키는 요구 (SPEC.md 없음 — 과제 요구사항 3번):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    }
+  ],
+  "totals": {
+    "files": 3,
+    "cases": 22,
+    "passed": 22,
+    "failed": 0
+  },
+  "runOk": true,
+  "runError": null,
+  "verdict": {
+    "A": "pass",
+    "B": "flags:3",
+    "C": "flags:0",
+    "D": "flags:0"
+  }
+}

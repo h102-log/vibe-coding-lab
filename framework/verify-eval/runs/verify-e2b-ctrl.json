@@ -1,0 +1,22 @@
+{
+  "label": "e2b-ctrl",
+  "appDir": "C:/Users/bhy99/proj/proj3/framework/verify-eval/e2b-ctrl",
+  "when": "2026-08-14T13:33:54.557Z",
+  "patternListVersion": 1,
+  "vitestVersion": "4.1.10",
+  "testFiles": [],
+  "totals": {
+    "files": 0,
+    "cases": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "runOk": true,
+  "runError": null,
+  "verdict": {
+    "A": "none",
+    "B": "flags:0",
+    "C": "flags:0",
+    "D": "flags:0"
+  }
+}
