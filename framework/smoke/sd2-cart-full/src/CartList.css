@@ -1,0 +1,92 @@
+.cart {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto 40px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.cart-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.cart-item-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-h);
+}
+
+.cart-item-price,
+.cart-item-subtotal {
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.cart-item-subtotal {
+  min-width: 7em;
+  text-align: right;
+  color: var(--text-h);
+}
+
+.cart-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 아이콘만 있는 작은 버튼 — 최소 조작 크기 32px는 지킨다. */
+.cart-step {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-h);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cart-step:hover {
+  border-color: var(--accent-border);
+}
+
+.cart-step:focus-visible,
+.cart-empty:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cart-quantity {
+  min-width: 3em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+  color: var(--text-h);
+}
+
+.cart-empty {
+  padding: 32px 0;
+  text-align: center;
+}
