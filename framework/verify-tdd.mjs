@@ -1,6 +1,8 @@
 // tdd 산출물 검사기 (계측 — 처치 아님. 에이전트에게 주지 않는다. r20 §1)
-//   usage: node framework/verify-tdd.mjs <app-dir> <label>
-//          → framework/smoke/runs/verify-<label>.json + 콘솔 사람용 요약
+//   usage: node framework/verify-tdd.mjs <app-dir> <label> [out-dir]
+//          → <out-dir>/verify-<label>.json + 콘솔 사람용 요약
+//            (out-dir 기본값 framework/smoke/runs — 기존 호출 무변경. 인자 추가는 r24 §4-5,
+//             판정 로직 무변경 확장이라 patternListVersion 무관)
 //          node framework/verify-tdd.mjs --selftest
 //          → 음성 픽스처 4종을 OS 임시 디렉터리에 생성·검사 (r20 §4)
 //
@@ -316,7 +318,7 @@ async function runVitest(appAbs, files) {
 }
 
 // ---------------------------------------------------------------------------
-async function verify(appDir, label) {
+async function verify(appDir, label, outDir = RUNS) {
   const appAbs = resolve(appDir);
   const files = enumerateTests(appAbs);
 
@@ -397,8 +399,8 @@ async function verify(appDir, label) {
     // 최상위 ok/success/pass 없음 — 의도적 부재 (r20 §3)
   };
 
-  mkdirSync(RUNS, { recursive: true });
-  const outFile = join(RUNS, `verify-${label}.json`);
+  mkdirSync(outDir, { recursive: true });
+  const outFile = join(outDir, `verify-${label}.json`);
   writeFileSync(outFile, JSON.stringify(result, null, 2) + "\n");
 
   // 콘솔 사람용 요약 — 판정 재료를 빠짐없이, 같은 방식으로 (r20 §2)
@@ -497,13 +499,13 @@ if (args[0] === "--selftest" && args.length === 1) {
     console.error(`계측 실패: ${e.stack ?? e}`);
     process.exit(1);
   });
-} else if (args.length === 2 && !args[0].startsWith("--")) {
-  const [appDir, label] = args;
+} else if ((args.length === 2 || args.length === 3) && !args[0].startsWith("--")) {
+  const [appDir, label, outDirArg] = args;
   if (!existsSync(appDir)) {
     console.error(`계측 실패: 앱 디렉터리 없음 — ${appDir}`);
     process.exit(1);
   }
-  verify(appDir, label)
+  verify(appDir, label, outDirArg ? resolve(outDirArg) : undefined)
     .then((r) => {
       if (r.verdict.A === "run-error") process.exit(1); // 계측 실패 — 판정이 아니다
     })
@@ -512,6 +514,6 @@ if (args[0] === "--selftest" && args.length === 1) {
       process.exit(1);
     });
 } else {
-  console.error("usage: node framework/verify-tdd.mjs <app-dir> <label> | --selftest");
+  console.error("usage: node framework/verify-tdd.mjs <app-dir> <label> [out-dir] | --selftest");
   process.exit(2);
 }
