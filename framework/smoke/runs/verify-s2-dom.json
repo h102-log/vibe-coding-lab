@@ -1,0 +1,87 @@
+{
+  "label": "s2-dom",
+  "appDir": "C:/Users/bhy99/proj/proj3/framework/smoke/s2-dom",
+  "when": "2026-08-14T09:37:18.642Z",
+  "patternListVersion": 1,
+  "vitestVersion": "4.1.10",
+  "testFiles": [
+    {
+      "path": "src/TagInput.enter-adds-trimmed-tag-and-clears-input.test.tsx",
+      "cases": 5,
+      "passed": 5,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (이 프로젝트에는 SPEC.md 가 없어 과제 요구 문장을 인용한다):\n *\n *   1. \"텍스트 입력창 1개와 추가된 태그 목록을 렌더한다.\"\n *   2. \"입력창에서 Enter를 누르면 입력값이 태그로 추가되고 입력창은 비워진다.\n *       태그는 앞뒤 공백을 제거해 저장하고\"\n *\n * 즉 이 파일은 (a) 입력창이 정확히 1개라는 것, (b) Enter 가 입력값을 태그로 만든다는 것,\n * (c) 저장되는 값이 trim 된 값이라는 것, (d) 추가 후 입력창이 비워진다는 것을 지킨다.\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (이 프로젝트에는 SPEC.md 가 없어 과제 요구 문장을 인용한다):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "src/TagInput.rejects-blank-and-duplicate-tags.test.tsx",
+      "cases": 5,
+      "passed": 5,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (이 프로젝트에는 SPEC.md 가 없어 과제 요구 문장을 인용한다):\n *\n *   2. \"태그는 앞뒤 공백을 제거해 저장하고, 공백 제거 후 빈 문자열이면 추가하지 않는다.\"\n *   3. \"이미 있는 태그와 같은 값이면(공백 제거 후 비교) 다시 추가하지 않는다.\"\n *\n * 즉 이 파일은 빈 입력·공백만 있는 입력이 태그가 되지 않는다는 것과,\n * 중복 태그가 (앞뒤 공백 차이를 무시하고) 두 번 들어가지 않는다는 것을 지킨다.\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (이 프로젝트에는 SPEC.md 가 없어 과제 요구 문장을 인용한다):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "src/TagInput.remove-button-unrenders-only-that-tag.test.tsx",
+      "cases": 4,
+      "passed": 4,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (이 프로젝트에는 SPEC.md 가 없어 과제 요구 문장을 인용한다):\n *\n *   4. \"각 태그 옆에 제거 버튼이 있고, 누르면 그 태그만 목록에서 사라진다(숨김이 아니라 언렌더).\"\n *\n * 즉 이 파일은 (a) 태그 개수만큼 제거 버튼이 있다는 것, (b) 누른 태그만 사라진다는 것,\n * (c) 사라진 태그가 DOM 에 남아 CSS 로 숨겨진 게 아니라 언렌더된다는 것을 지킨다.\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (이 프로젝트에는 SPEC.md 가 없어 과제 요구 문장을 인용한다):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "src/TagInput.shows-empty-message-when-no-tags.test.tsx",
+      "cases": 3,
+      "passed": 3,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (이 프로젝트에는 SPEC.md 가 없어 과제 요구 문장을 인용한다):\n *\n *   5. \"태그가 0개일 때는 목록 대신 \\\"태그 없음\\\" 텍스트를 렌더한다.\"\n *\n * 즉 이 파일은 (a) 처음 상태에서 \"태그 없음\" 이 보이고 목록은 렌더되지 않는다는 것,\n * (b) 태그가 생기면 \"태그 없음\" 이 사라지고 목록이 렌더된다는 것,\n * (c) 태그를 모두 제거하면 다시 \"태그 없음\" 으로 돌아간다는 것을 지킨다.\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (이 프로젝트에는 SPEC.md 가 없어 과제 요구 문장을 인용한다):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    }
+  ],
+  "totals": {
+    "files": 4,
+    "cases": 17,
+    "passed": 17,
+    "failed": 0
+  },
+  "runOk": true,
+  "runError": null,
+  "verdict": {
+    "A": "pass",
+    "B": "flags:0",
+    "C": "flags:0",
+    "D": "flags:0"
+  }
+}
