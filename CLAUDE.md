@@ -23,8 +23,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 survived 2/3), 갭은 §4(문장→테스트 전이)가 아니라 **§2(침묵 지점 포착)에 있음**이 관측됐다
 (`docs/REPORT5.md` §6). 남은 축(§1·§2)은 통제 실험으로 못 재므로(삼각 모순 — REPORT2 §6.3·r13 §1)
 **다음은 프레임워크 v0.1 + 실사용 2회차다** — v0.1 1단계(tdd)는 r16(착수)~r18(재점검 종결)로
-끝났고, 2단계(sdd)의 계획 SSOT는 `docs/next/2026-08-14/r22.md`다(§9 미결 종결 기록은 같은 날
-r23). 착수 세션은 r22 §8 절차를 따른다.
+끝났고, 2단계(sdd)는 계획 r22(v4 SSOT · §9 종결 기록 r23)에 따라 **r25로 착수 완료**했다
+(SKILL.md 79줄 + specprobe + 스모크 S-A/S-B/S-C, 판정 후 문안 수정 0건). 다음은 3단계(edd,
+r16 §3-3단계) — 선행 미결은 r16 §7-2·3(사용자 결정). 최신 세션 기록은 `docs/next/2026-08-14/r25.md`.
 
 ## 절대 규칙
 
@@ -64,6 +65,9 @@ bash exp2/faultcheck.sh F-07          # 결함을 AC 오라클로 채점 (인자
 
 # 앱 안에서 오라클 1회 (사람이 실패 원문을 읽을 때)
 cd exp3/b2t && npx vitest run --config tests/ac/ac.vitest.config.ts 2>&1 | tail -50
+
+# sdd 산출물(SPEC.md) 판정 보조기 (계측 — 세기만 한다. 에이전트에게 절대 주지 않는다)
+node framework/specprobe.mjs <SPEC.md 경로>   # 리터럴 4종 카운트, 판정은 육안이 이긴다 (r25 §0)
 ```
 
 `exp3/selftest.sh`는 사본이지만 내부에서 `exp2/selftest.vitest.config.ts`를 복사해 쓴다(내용 동일). 고치지 말고 `exp2/` 쪽을 그대로 호출하면 된다.
