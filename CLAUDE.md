@@ -23,8 +23,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 survived 2/3), 갭은 §4(문장→테스트 전이)가 아니라 **§2(침묵 지점 포착)에 있음**이 관측됐다
 (`docs/REPORT5.md` §6). 남은 축(§1·§2)은 통제 실험으로 못 재므로(삼각 모순 — REPORT2 §6.3·r13 §1)
 **다음은 프레임워크 v0.1 + 실사용 2회차다** — v0.1 1단계(tdd)는 r16(착수)~r18(재점검 종결)로
-끝났고, tdd 산출물 계측기 `framework/verify-tdd.mjs`가 r20으로 신설됐다. 최신 세션 지시서는
-`docs/next/2026-08-14/r20.md`.
+끝났고, tdd 산출물 계측기 `framework/verify-tdd.mjs`가 r20으로 신설됐다. 그 계측기의
+정확도·실용성 평가 계획이 r24로 채택됐다(실행은 PR #7 main 머지 후 새 브랜치에서).
+최신 세션 지시서는 `docs/next/2026-08-14/r24.md`.
 
 ## 절대 규칙
 
