@@ -1,0 +1,9 @@
+{
+  "name": "specgate",
+  "description": "구현 전에 SPEC.md를 강제하고, 완료 전에 대조를 강제한다. 문안은 제안이 아니라 훅으로 차단된다.",
+  "version": "0.1.0",
+  "author": { "name": "bh102" },
+  "hooks": "./hooks/hooks.json",
+  "commands": "./commands",
+  "skills": "./skills"
+}

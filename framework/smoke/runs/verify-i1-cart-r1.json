@@ -1,0 +1,91 @@
+{
+  "label": "i1-cart-r1",
+  "appDir": "C:/Users/bhy99/proj/proj3/framework/smoke/i1-cart-r1",
+  "when": "2026-08-16T04:06:53.814Z",
+  "patternListVersion": 1,
+  "vitestVersion": "4.1.10",
+  "testFiles": [
+    {
+      "path": "src/App.renders-cart-list.test.tsx",
+      "cases": 1,
+      "passed": 1,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (SPEC.md §1):\n * - S1 \"`src/CartList.tsx`가 CartList 컴포넌트를 정의하고, `src/App.tsx`가 CartList를 렌더한다.\"\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (SPEC.md §1):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "src/CartList.line-items-and-total.test.tsx",
+      "cases": 4,
+      "passed": 4,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (SPEC.md §1):\n * - S2 \"담긴 항목이 하나 이상이면 CartList는 각 항목을 한 줄로 렌더하고, 그 줄은 항목 이름 ·\n *   단가 · 수량 · 소계 네 값을 모두 표시한다.\"\n * - S3 \"각 줄의 소계는 그 줄의 `수량 × 단가`와 같다.\"\n * - S9 \"목록 아래에 전체 합계가 표시되고, 그 값은 담긴 모든 줄의 소계 합과 같다.\"\n * - S10 \"시작 데이터는 CartList 모듈 안에 하드코딩된 항목 2~3개다.\"\n * - I8 \"금액은 정수 원화이고, 천 단위 쉼표 + `원` 접미사로 표시한다. 표시 포맷은 실행 환경의\n *   로케일·ICU 설정에 의존하지 않는다.\"\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (SPEC.md §1):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "src/CartList.quantity-stepper.test.tsx",
+      "cases": 5,
+      "passed": 5,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (SPEC.md §1, §2):\n * - S4 \"각 줄에는 수량 스테퍼가 있다 — 아이콘(기호)만 보이는 작은 버튼 두 개(−, +)이며, 버튼\n *   안에 보이는 텍스트 라벨은 없다.\"\n * - S5 \"어떤 줄의 + 버튼을 누르면 그 줄의 수량이 정확히 1 증가한다.\"\n * - S6 \"어떤 줄의 − 버튼을 누르면 그 줄의 수량이 정확히 1 감소한다.\"\n * - S7 \"한 줄의 수량을 바꿔도 다른 줄의 수량은 변하지 않는다.\"\n * - I4 \"두 아이콘 버튼은 각각 `\"<항목 이름> 수량 줄이기\"` · `\"<항목 이름> 수량 늘리기\"`를 접근\n *   가능한 이름으로 갖고, 안의 기호 문자는 보조기술에서 숨긴다.\"\n * - I5 \"두 버튼은 네이티브 `<button type=\"button\">`이라 Tab만으로 도달하고 Enter·Space로\n *   활성화되며, 커스텀 `tabIndex`를 두지 않아 Tab 순서가 시각적 순서와 같다.\"\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (SPEC.md §1, §2):"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    },
+    {
+      "path": "src/CartList.zero-quantity-removes-line.test.tsx",
+      "cases": 3,
+      "passed": 3,
+      "failed": 0,
+      "header": "/**\n * 지키는 요구 (SPEC.md §1, §2):\n * - S8 \"수량이 0이 된 항목은 더 이상 담긴 항목이 아니다 — 목록에 그 줄이 렌더되지 않고, 전체\n *   합계에도 포함되지 않는다.\"\n * - I1 \"수량이 0이 되는 순간 그 줄은 DOM에서 사라지고, 되돌리는 수단(실행 취소·복구)은 제공하지\n *   않는다.\" (SPEC.md §2.3 U1 — 기본값, 상태 `선택 대기`)\n * - I3 \"수량은 0 미만이 될 수 없고 상한은 없다.\"\n * - I7 \"담긴 항목이 0개면 목록 대신 '담은 항목이 없습니다.' 안내를 렌더하고, 전체 합계는 계속\n *   표시하되 0원이다.\"\n */",
+      "headerPresent": true,
+      "specRefs": [
+        {
+          "line": 2,
+          "text": "* 지키는 요구 (SPEC.md §1, §2):"
+        },
+        {
+          "line": 6,
+          "text": "*   않는다.\" (SPEC.md §2.3 U1 — 기본값, 상태 `선택 대기`)"
+        }
+      ],
+      "envFlags": [],
+      "nameFlag": null
+    }
+  ],
+  "totals": {
+    "files": 4,
+    "cases": 13,
+    "passed": 13,
+    "failed": 0
+  },
+  "runOk": true,
+  "runError": null,
+  "verdict": {
+    "A": "pass",
+    "B": "flags:0",
+    "C": "flags:0",
+    "D": "flags:0"
+  }
+}
