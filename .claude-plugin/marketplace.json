@@ -1,0 +1,11 @@
+{
+  "name": "proj3",
+  "owner": { "name": "bh102" },
+  "plugins": [
+    {
+      "name": "specgate",
+      "source": "./framework",
+      "description": "구현 전에 SPEC.md를 강제하고, 완료 전에 문장별 구현 위치 대조를 강제한다. 문안이 아니라 훅으로 차단한다."
+    }
+  ]
+}

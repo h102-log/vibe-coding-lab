@@ -7,7 +7,7 @@
 // exit 0 위반 없음 / 1 위반 있음 / 2 파일 없음·파싱 실패 — 1과 2를 반드시 가른다.
 // A층(골격 독립)만 본다. 헤딩 번호·절 순서·절 제목은 검사하지 않는다.
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // ── 표 파싱 ────────────────────────────────────────────────────────────────
@@ -234,9 +234,12 @@ function selftest() {
 }
 
 // ── CLI ────────────────────────────────────────────────────────────────────
+// 직접 실행일 때만 돈다 — hooks/spec-gate.mjs가 inspect()를 import하므로, 이 가드가 없으면
+// 훅의 인자(`pre`)를 SPEC 경로로 읽고 exit 2를 내며 매 Write를 오차단한다.
+const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
-if (args[0] === '--selftest' && args.length === 1) selftest();
-else {
+if (isMain && args[0] === '--selftest' && args.length === 1) selftest();
+else if (isMain) {
   const path = args.find((a) => !a.startsWith('--'));
   if (!path) {
     console.error('usage: node framework/spec-verify.mjs <SPEC.md 경로> [--json] | --selftest');
