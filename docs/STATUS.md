@@ -244,7 +244,7 @@ flowchart TD
 | 4 | (병행 후보) **«선택 대기»가 tdd로 굳는 경로 개입** — sdd §2에 인용 금지 1줄 | 사전 등록된 전후 비교. 발동 조건은 r35 §2-4에서 충족됐다 |
 | 5 | (병행 후보) **`framework/README.md`** — 3조합(sdd / tdd / sdd+tdd) 안내 | 어떤 상황에 어떤 축을 끄는가가 한 장에 있는가 |
 | 6 | **edd** — v0.2 또는 실사용 관측 중 병행 | 이 라운드는 정하지 않았다(r34 §0-1) |
-| 7 | **게이트 트랙** (2026-08-16 신규 — 아래 «재개된 것») | 0단계 **완료 — 훅은 막는다.** 다음: ① SPEC 골격 `framework/spec-template.md` ② 검사기(골격 위반 → exit 1, `verify-tdd.mjs`에 exit code) ③ 훅 배선 — matcher에 **`Bash` 포함** ④ 실제 프로젝트 설치(r28 ①과 합류) |
+| 7 | **게이트 트랙** (2026-08-16 신규 — 아래 «재개된 것») | 0단계 **완료 — 훅은 막는다.** ① SPEC 골격 `framework/spec-template.md` **완료** · ② 검사기 **A층 완료** — `framework/spec-verify.mjs`(SKILL.md 근거 5종 → exit 0/1/2, r36. 실물 `sd1`에서 육안 3회가 놓친 `선택 대기` 누락 9건 검출). 남은 것: B층(골격 대조) · `verify-tdd.mjs`에 exit code ③ 훅 배선 — matcher에 **`Bash` 포함** ④ 실제 프로젝트 설치(r28 ①과 합류) |
 
 ### 하지 않기로 한 것 (범위 밖 — 재개는 별도 결정)
 
