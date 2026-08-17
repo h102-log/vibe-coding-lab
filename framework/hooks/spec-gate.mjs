@@ -5,7 +5,7 @@
 //   node hooks/spec-gate.mjs stop  < Stop JSON         # 완료를 선언하기 직전
 //   node hooks/spec-gate.mjs --selftest
 // exit 0 통과 / 2 차단 — 2일 때 stderr가 에이전트에게 되돌아간다.
-import { existsSync, readFileSync, writeFileSync, copyFileSync, rmSync, mkdtempSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, copyFileSync, rmSync, mkdtempSync, appendFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -98,5 +98,13 @@ else {
   let ev = {};
   try { ev = JSON.parse(readFileSync(0, 'utf8')); } catch { /* stdin 없음 = 빈 이벤트 = 통과 */ }
   const block = decide(mode, ev);
-  if (block) { console.error(block); process.exit(2); }
+  if (block) {
+    // 실사용 관측 — 차단을 사람이 받아적지 않는다(FIELD-GUIDE §1). 로그가 터져도 차단은 그대로 간다.
+    try {
+      appendFileSync(join(ev.cwd ?? process.cwd(), '.specgate-log.jsonl'),
+        JSON.stringify({ t: new Date().toISOString(), mode, file: ev.tool_input?.file_path ?? null, first: block.split('\n')[0] }) + '\n');
+    } catch { /* 관측이 게이트를 망가뜨리면 안 된다 */ }
+    console.error(block);
+    process.exit(2);
+  }
 }
