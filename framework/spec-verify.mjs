@@ -13,13 +13,13 @@ import { fileURLToPath } from 'node:url';
 // ── 표 파싱 ────────────────────────────────────────────────────────────────
 // GFM 이스케이프 `\|`는 셀 구분자가 아니다 — 이걸 쪼개면 그 행만 열이 밀려 상태 열이
 // 어긋나고, `선택 대기` 행 하나가 조용히 빠져 exit 1이 exit 0으로 뒤집힌다.
-const cellsOf = (l) =>
+export const cellsOf = (l) =>
   l.trim().replace(/^\|/, '').replace(/\|$/, '')
     .split(/(?<!\\)\|/).map((s) => s.trim().replace(/\\\|/g, '|'));
 const isRule = (cs) => cs.every((c) => /^:?-{2,}:?$/.test(c));
 
 // 코드펜스 안의 줄은 예시지 산출물이 아니다 — 표·리터럴을 실물로 세면 «예시만 있는 SPEC»이 통과한다.
-function stripFences(lines) {
+export function stripFences(lines) {
   let inFence = false;
   return lines.map((l) => {
     if (/^\s*(```|~~~)/.test(l)) { inFence = !inFence; return ''; }
@@ -27,7 +27,7 @@ function stripFences(lines) {
   });
 }
 
-function tables(lines) {
+export function tables(lines) {
   const out = [];
   let cur = null;
   lines.forEach((l, i) => {
@@ -44,13 +44,15 @@ function tables(lines) {
 
 // ── ID 토큰 ────────────────────────────────────────────────────────────────
 // 문장 ID = 줄 선두(표 첫 셀 / 리스트 마커 뒤)에 오는 S1 · I12 · R3 · S7a 형태.
-const SENT_ID = /^\*{0,2}([A-Z]{1,3}\d{1,3}[a-z]?)\*{0,2}(?=[\s.):|]|$)/;
+export const SENT_ID = /^\*{0,2}([A-Z]{1,3}\d{1,3}[a-z]?)\*{0,2}(?=[\s.):|]|$)/;
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
 const hasToken = (text, id) => new RegExp(`(?<![A-Za-z0-9])${esc(id)}(?![0-9A-Za-z])`).test(text);
+// 지목의 «위치 표기» = `파일:줄` · `` `:12` `` · `:12-20`. C4 경고와 spec-delta의 D4가 같은 기준을 쓴다.
+export const POS = /[\w./\\-]+\.\w{1,5}:\d+|`:\d+`|:\d+\s*[-–—]\s*\d+/;
 
 // `R1~R8` · `U1-U10` · `T1–T8` 같은 범위 표기를 개별 ID로 편다. SKILL.md는 열거 형식을
 // 규정하지 않으므로 범위 표기도 지목으로 인정한다.
-function expandRanges(text) {
+export function expandRanges(text) {
   const set = new Set();
   for (const m of text.matchAll(/([A-Z]{1,3})(\d{1,3})\s*[~\-–—]\s*(?:([A-Z]{1,3}))?(\d{1,3})/g)) {
     const [, pre, a, pre2, b] = m;
@@ -62,7 +64,7 @@ function expandRanges(text) {
   return set;
 }
 
-const mentions = (text, ids) => {
+export const mentions = (text, ids) => {
   const ranged = expandRanges(text);
   return ids.filter((id) => ranged.has(id) || hasToken(text, id));
 };
@@ -148,7 +150,6 @@ export function inspect(text, spec) {
     // SKILL.md:77은 «"있을 것이다"가 아니라 어느 파일 어느 줄인지» 요구한다. ID 재등장만으로는
     // 빈 셀·«구현 안 함»도 통과하므로, 위치 표기가 없는 지목은 위반이 아니라 경고로 낸다
     // («실행 확인»·«부재로 충족»처럼 위치가 없어도 정당한 지목이 실물에 있다 — 게이트로 올리면 위양성).
-    const POS = /[\w./\\-]+\.\w{1,5}:\d+|`:\d+`|:\d+\s*[-–—]\s*\d+/;
     const located = new Set(mentions(lines.filter((l) => POS.test(l)).join('\n'), sentIds));
     const vague = [...hit].filter((id) => !located.has(id));
     c4.vague = vague;
