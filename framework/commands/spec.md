@@ -3,7 +3,19 @@ description: SPEC.md를 쓰거나, 이미 있으면 검사기를 돌려 남은 �
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(node:*)
 ---
 
-프로젝트 루트의 `SPEC.md` 상태에 따라 갈라진다.
+**$ARGUMENTS 가 `delta` 로 시작하면** — 기존 코드 수정 루프다. 본 `SPEC.md`는 직접 고치지 않는다.
+
+1. `SPEC.delta.md`가 **이미 있으면 새로 만들지 마라** — `verify`를 돌려 상태를 보고하고, 같은
+   작업 단위면 기존 델타에 항목을 더한다. 다른 작업이면 기존 사이클 종결(대조를 채우고 완료)을
+   먼저 제안한다. 방치 델타의 폐기는 사용자 몫이니 임의로 지우지 마라.
+2. 없으면 `delta-template.md` 사본으로 만들고 한 줄 요구를 ADDED/MODIFIED/REMOVED로 쪼갠다.
+   MODIFIED 대상 `` `파일:심볼` ``은 구현을 시작하기 **전에** 채운다. ID는 본 SPEC의 S/I/U 최대
+   번호에 이어 쓰고, 미확정 항목(U)은 불릿이 아니라 6열 표 행으로 적는다.
+3. `node "${CLAUDE_PLUGIN_ROOT}/spec-delta.mjs" verify SPEC.delta.md` 로 확인한 뒤 구현한다.
+   구현이 끝나면 `## 대조` 표를 채운다 — 완료 선언 시 게이트가 D1~D5를 보고, **전건 통과하면
+   그 자리에서 `SPEC.md`에 병합하고 델타를 지운다**(사람이 `merge`를 칠 필요가 없다).
+
+그 외에는 프로젝트 루트의 `SPEC.md` 상태에 따라 갈라진다.
 
 **없으면** — sdd 스킬(`skills/sdd/SKILL.md`)의 절차대로 새로 쓴다. §2 점검표 10범주와
 미확정 6열 표를 빠뜨리지 마라. 이 둘이 없으면 게이트가 구현 단계에서 막는다.
@@ -19,4 +31,4 @@ node "${CLAUDE_PLUGIN_ROOT}/spec-verify.mjs" SPEC.md
 - 위반 C5 → `선택 대기` 항목이 재확인 목록에 빠졌다. 사용자에게 제시할 목록에 넣는다.
 - 경고 → 위반이 아니다. 사람이 판단할 몫이니 보고만 하고 임의로 고치지 마라.
 
-$ARGUMENTS 가 주어졌으면 그 경로를 `SPEC.md` 대신 쓴다.
+$ARGUMENTS 가 경로면 그 경로를 `SPEC.md` 대신 쓴다.

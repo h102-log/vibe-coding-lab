@@ -175,6 +175,12 @@ export function mergeDelta(deltaText, baseText) {
   const W = [];
   const cold = baseText == null;
 
+  // rows 0이 정상인 델타도 있다(REMOVED만 있는 경우). ADDED·MODIFIED가 있는데 rows가 0이면
+  // D4를 통과하고 여기까지 왔다는 뜻이고, 그건 대조 절이 «다른 이름»으로 존재한다는 뜻이다
+  // — D4는 절 이름을 보지 않는다. 안전망(아래 완료 조건)은 걸리지만 원인을 짚어주지 않는다.
+  if (!rows.length && (added.length || modified.length))
+    W.push('`## 대조` 절에서 읽은 행이 0이다 — 절 이름을 확인하라');
+
   // 콜드스타트는 골격을 델타의 S·I로 채워 만든다. U행·대조·MODIFIED·REMOVED는 그 뒤 공통 경로가
   // 그대로 본다 — 경로를 둘로 두면 «콜드에서만 나는 버그»가 생긴다.
   const base = cold ? coldBase(added) : baseText;
@@ -268,7 +274,8 @@ export function mergeDelta(deltaText, baseText) {
   const tally = (t) => inspect(t, 'x').violations.reduce((a, v) => ((a[v.check] = (a[v.check] ?? 0) + 1), a), {});
   const before = tally(baseText ?? ''), after = tally(text);
   const worse = Object.keys(after).filter((k) => after[k] > (before[k] ?? 0));
-  if (worse.length) throw new Error(`병합이 위반을 늘렸다: ${worse.map((k) => `${k} ${before[k] ?? 0}→${after[k]}`).join(' · ')}`);
+  // 경고를 꼬리로 붙인다 — throw 경로에서는 W가 반환되지 않아 원인 진단이 통째로 사라진다.
+  if (worse.length) throw new Error(`병합이 위반을 늘렸다: ${worse.map((k) => `${k} ${before[k] ?? 0}→${after[k]}`).join(' · ')}${W.length ? ` (${W.join(' · ')})` : ''}`);
 
   return { text, warnings: W };
 }
@@ -432,6 +439,7 @@ const DU = `# DELTA — 쿠폰을 붙일 수 있게
 
 const D_BAD = edit(V1, '| S2 | src/cart.ts:31 |\n', '');   // V6과 같은 재료 — D4 위반
 const D_GHOST = edit(V1, /S2/g, 'S7');                     // MODIFIED 대상이 본 SPEC에 없다
+const D_BADSEC = edit(V1, '## 대조', '## 검증');           // 절 이름만 다르다 — verify는 통과하고 merge가 막는다
 
 const seedMini = (d, delta) => { wf(d, 'SPEC.md', MINI); wf(d, 'SPEC.delta.md', delta); return ['merge', 'SPEC.delta.md']; };
 
@@ -481,6 +489,13 @@ const MCASES = [
     (r, d) => (!r.stdout.includes('S3. 쿠폰이') ? '병합 결과가 stdout에 없다'
       : rf(d, 'SPEC.md') !== MINI ? 'SPEC.md가 바뀌었다'
         : rf(d, 'SPEC.delta.md') !== DU ? '델타가 지워졌다' : null)],
+
+  // 검사기와 병합기가 «대조 절»을 다르게 특정한다 — D4는 절 이름을 안 보고 merge는 `## 대조`만 읽는다.
+  // 안전망은 걸리므로 SPEC은 안 망가진다. 재는 것은 «메시지가 원인을 짚는가»다.
+  ['M10 대조 절 이름', (d) => seedMini(d, D_BADSEC), 2,
+    (r, d) => (rf(d, 'SPEC.md') !== MINI ? 'SPEC.md가 바뀌었다'
+      : rf(d, 'SPEC.delta.md') !== D_BADSEC ? '델타가 바뀌었다'
+        : r.stderr.includes('절에서 읽은 행이 0') ? null : '원인 경고가 없다')],
 ];
 
 function selftest() {
