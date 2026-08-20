@@ -22,25 +22,34 @@ const PRE = new Set(['C1', 'C2', 'C3']);
 const read = (p) => inspect(readFileSync(p, 'utf8'), 'SPEC.md');
 const list = (vs) => vs.map((x) => `  - [${x.check}] ${x.msg}`).join('\n');
 
+// 판정은 항상 객체다 — { msg: 사람이 읽을 것|null, exit: 0|2, log: 남길 줄|null }.
+// «메시지는 내되 exit 0»(병합 실패 재진입)과 «차단이 아닌 로그»(병합 성공)를 문자열로는 못 낸다.
+const PASS = { msg: null, exit: 0, log: null };
+const blocked = (mode, ev, msg) => ({
+  msg, exit: 2,
+  // 로그 형식은 그대로 유지한다 — .specgate-log.jsonl은 실사용 관측 자산이다(FIELD-GUIDE §1).
+  log: { t: new Date().toISOString(), mode, file: ev.tool_input?.file_path ?? null, first: msg.split('\n')[0] },
+});
+
 export function decide(mode, ev) {
   const spec = join(ev.cwd ?? process.cwd(), 'SPEC.md');
 
   if (mode === 'pre') {
     const f = ev.tool_input?.file_path ?? '';
-    if (!SRC.test(f)) return null;
+    if (!SRC.test(f)) return PASS;
     if (!existsSync(spec))
-      return `SPEC.md가 없다. 구현 전에 프로젝트 루트에 SPEC.md를 써라 — 명시된 것(§1) · 침묵 지점 10범주 점검표와 미확정 6열 표(§2).\n막힌 것: ${f}`;
+      return blocked(mode, ev, `SPEC.md가 없다. 구현 전에 프로젝트 루트에 SPEC.md를 써라 — 명시된 것(§1) · 침묵 지점 10범주 점검표와 미확정 6열 표(§2).\n막힌 것: ${f}`);
     const v = read(spec).violations.filter((x) => PRE.has(x.check));
-    return v.length ? `SPEC.md가 아직 구현에 들어갈 상태가 아니다:\n${list(v)}\n막힌 것: ${f}` : null;
+    return v.length ? blocked(mode, ev, `SPEC.md가 아직 구현에 들어갈 상태가 아니다:\n${list(v)}\n막힌 것: ${f}`) : PASS;
   }
 
   if (mode === 'stop') {
-    if (ev.stop_hook_active) return null;   // 재진입 — 여기서 또 막으면 무한 루프다
-    if (!existsSync(spec)) return null;     // SPEC 없이 끝난 세션은 pre가 이미 판단했다
+    if (ev.stop_hook_active) return PASS;   // 재진입 — 여기서 또 막으면 무한 루프다
+    if (!existsSync(spec)) return PASS;     // SPEC 없이 끝난 세션은 pre가 이미 판단했다
     const v = read(spec).violations;
-    return v.length ? `완료 전 대조(§3)가 끝나지 않았다:\n${list(v)}` : null;
+    return v.length ? blocked(mode, ev, `완료 전 대조(§3)가 끝나지 않았다:\n${list(v)}`) : PASS;
   }
-  return null;
+  return PASS;
 }
 
 // ── --selftest ─────────────────────────────────────────────────────────────
@@ -97,14 +106,13 @@ if (mode === '--selftest') selftest();
 else {
   let ev = {};
   try { ev = JSON.parse(readFileSync(0, 'utf8')); } catch { /* stdin 없음 = 빈 이벤트 = 통과 */ }
-  const block = decide(mode, ev);
-  if (block) {
-    // 실사용 관측 — 차단을 사람이 받아적지 않는다(FIELD-GUIDE §1). 로그가 터져도 차단은 그대로 간다.
+  const d = decide(mode, ev);
+  // 실사용 관측 — 차단을 사람이 받아적지 않는다(FIELD-GUIDE §1). 로그가 터져도 판정은 그대로 간다.
+  if (d.log) {
     try {
-      appendFileSync(join(ev.cwd ?? process.cwd(), '.specgate-log.jsonl'),
-        JSON.stringify({ t: new Date().toISOString(), mode, file: ev.tool_input?.file_path ?? null, first: block.split('\n')[0] }) + '\n');
+      appendFileSync(join(ev.cwd ?? process.cwd(), '.specgate-log.jsonl'), JSON.stringify(d.log) + '\n');
     } catch { /* 관측이 게이트를 망가뜨리면 안 된다 */ }
-    console.error(block);
-    process.exit(2);
   }
+  if (d.msg) console.error(d.msg);
+  process.exit(d.exit);
 }
