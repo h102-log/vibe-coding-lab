@@ -87,7 +87,15 @@ node framework/spec-interview.mjs --selftest    # 기록·집계 12건 대조
 node framework/spec-anchor.mjs record SPEC.md   # §3 지목의 실존·줄 범위 확인 → SPEC.anchors.json
 node framework/spec-anchor.mjs drift  SPEC.md   # 앵커 대조 missing/stale/modified. exit 1 = 다시 읽을 문장이 있다
 node framework/spec-anchor.mjs --selftest       # record 7건 + drift 8건
+node framework/specgate.mjs verify SPEC.md      # 위 검사들을 SG 번호 + 힌트 한 줄로. CI는 이 줄만 있으면 된다
+node framework/specgate.mjs verify SPEC.md --json    # ruleId·severity·loc·hint — 에이전트·CI 계약
+node framework/specgate.mjs --selftest          # 룰 매핑·mute·로그 18건 대조
 ```
+
+`specgate`는 **검사를 하나도 재구현하지 않는다** — 위 도구들의 결과에 번호와 정적 힌트를 입힐
+뿐이고, 검출력은 한 건도 늘지 않는다. 번호는 `SG1001~1009`(C1~C5) · `SG1011~1015`(D1~D5) ·
+`SG1000`(SPEC 부재)이고, 훅 stderr도 같은 한 줄 포맷을 쓴다. 프로젝트 루트에 `.specgate.json`을
+두면 `{"mute":["SG1006"]}`으로 **Warning만** 끌 수 있다 — Error는 mute되지 않는다.
 
 `spec-anchor`는 **어떤 훅에도 걸려 있지 않다** — 명시 실행 전용이고, 안 돌리면 아무것도 실증되지
 않는다. `drift`의 exit 0은 «문장이 아직 참»이 아니라 «앵커 스팬이 그대로»라는 뜻이다.

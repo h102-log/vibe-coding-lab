@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { inspect } from '../spec-verify.mjs';
 import { inspectDelta, mergeDelta } from '../spec-delta.mjs';
+import { RULES, ruleOf, UNASSIGNED, line1 } from '../specgate.mjs';
 
 // 게이트 대상 = 구현 소스. 문서·설정·SPEC 자신은 SPEC 없이도 쓸 수 있어야 한다
 // (여기에 .md를 넣으면 SPEC.md를 쓰려는 첫 Write가 자기 자신에게 막힌다).
@@ -23,15 +24,27 @@ const PRE = new Set(['C1', 'C2', 'C3']);
 const PRE_D = new Set(['D1', 'D2']);
 
 const read = (p) => inspect(readFileSync(p, 'utf8'), 'SPEC.md');
-const list = (vs) => vs.map((x) => `  - [${x.check}] ${x.msg}`).join('\n');
+// 룰 ID + 정적 힌트로 낸다 — 사람 터미널·훅 stderr·CI가 같은 한 줄 포맷을 공유한다(KF4).
+// 훅이 내는 finding은 전부 violations라 심각도는 항상 Error다.
+const list = (vs) => vs.map((x) => {
+  const r = ruleOf(x);
+  return `  - ${line1({ ruleId: r?.id ?? UNASSIGNED, severity: 'Error', msg: x.msg })}`
+    + (r ? `\n    ↳ ${r.hint}` : '');
+}).join('\n');
+const rulesOf = (vs) => [...new Set(vs.map((x) => ruleOf(x)?.id ?? UNASSIGNED))];
 
 // 판정은 항상 객체다 — { msg: 사람이 읽을 것|null, exit: 0|2, log: 남길 줄|null }.
 // «메시지는 내되 exit 0»(병합 실패 재진입)과 «차단이 아닌 로그»(병합 성공)를 문자열로는 못 낸다.
 const PASS = { msg: null, exit: 0, log: null };
-const blocked = (mode, ev, msg) => ({
+const blocked = (mode, ev, msg, vs = []) => ({
   msg, exit: 2,
-  // 로그 형식은 그대로 유지한다 — .specgate-log.jsonl은 실사용 관측 자산이다(FIELD-GUIDE §1).
-  log: { t: new Date().toISOString(), mode, file: ev.tool_input?.file_path ?? null, first: msg.split('\n')[0] },
+  // 기존 필드는 그대로 두고 `rules`만 더한다(additive) — .specgate-log.jsonl은 실사용 관측
+  // 자산이다(FIELD-GUIDE §1). `first`는 헤더 문장이라 이 필드가 없으면 «같은 룰이 반복해서
+  // 막았는가»를 로그만으로 읽을 수 없다(KF4 §9-3).
+  log: {
+    t: new Date().toISOString(), mode, file: ev.tool_input?.file_path ?? null,
+    first: msg.split('\n')[0], rules: rulesOf(vs),
+  },
 });
 
 // Stop에 델타가 살아 있으면 D1~D5 전건을 보고, 통과하면 그 자리에서 병합한다.
@@ -42,7 +55,7 @@ function stopDelta(ev, spec, delta) {
   const btext = existsSync(spec) ? readFileSync(spec, 'utf8') : null;
   const r = inspectDelta(dtext, btext, 'SPEC.delta.md');
   if (r.violations.length)
-    return ev.stop_hook_active ? PASS : blocked('stop', ev, `완료 전 델타 대조가 끝나지 않았다:\n${list(r.violations)}`);
+    return ev.stop_hook_active ? PASS : blocked('stop', ev, `완료 전 델타 대조가 끝나지 않았다:\n${list(r.violations)}`, r.violations);
   try {
     const m = mergeDelta(dtext, btext);
     // 쓰기 성공 뒤 삭제가 실패하면 델타가 남아 다음 Stop이 중복 병합을 시도한다 — 조용히 넘기지
@@ -78,12 +91,14 @@ export function decide(mode, ev) {
       const btext = existsSync(spec) ? readFileSync(spec, 'utf8') : null;
       const r = inspectDelta(readFileSync(delta, 'utf8'), btext, 'SPEC.delta.md');
       const v = r.violations.filter((x) => PRE_D.has(x.check));
-      return v.length ? blocked(mode, ev, `SPEC.delta.md가 아직 구현에 들어갈 상태가 아니다:\n${list(v)}\n막힌 것: ${f}`) : PASS;
+      return v.length ? blocked(mode, ev, `SPEC.delta.md가 아직 구현에 들어갈 상태가 아니다:\n${list(v)}\n막힌 것: ${f}`, v) : PASS;
     }
+    // 게이트 전용 룰 — spec-verify에는 없다(SPEC 파일 자체가 없는 상태). 힌트 줄은 붙이지
+    // 않는다: 메시지 본문이 이미 힌트가 말할 내용이다.
     if (!existsSync(spec))
-      return blocked(mode, ev, `SPEC.md가 없다. 구현 전에 프로젝트 루트에 SPEC.md를 써라 — 명시된 것(§1) · 침묵 지점 10범주 점검표와 미확정 6열 표(§2).\n기존 코드 수정이면 \`/spec delta\`로 SPEC.delta.md 1장을 대신 써라.\n막힌 것: ${f}`);
+      return blocked(mode, ev, `${line1({ ruleId: RULES['gate.noSpec'].id, severity: 'Error', msg: 'SPEC.md가 없다. 구현 전에 프로젝트 루트에 SPEC.md를 써라 — 명시된 것(§1) · 침묵 지점 10범주 점검표와 미확정 6열 표(§2).' })}\n기존 코드 수정이면 \`/spec delta\`로 SPEC.delta.md 1장을 대신 써라.\n막힌 것: ${f}`, [{ kind: 'gate.noSpec' }]);
     const v = read(spec).violations.filter((x) => PRE.has(x.check));
-    return v.length ? blocked(mode, ev, `SPEC.md가 아직 구현에 들어갈 상태가 아니다:\n${list(v)}\n막힌 것: ${f}`) : PASS;
+    return v.length ? blocked(mode, ev, `SPEC.md가 아직 구현에 들어갈 상태가 아니다:\n${list(v)}\n막힌 것: ${f}`, v) : PASS;
   }
 
   if (mode === 'stop') {
@@ -91,7 +106,7 @@ export function decide(mode, ev) {
     if (ev.stop_hook_active) return PASS;   // 재진입 — 여기서 또 막으면 무한 루프다
     if (!existsSync(spec)) return PASS;     // SPEC 없이 끝난 세션은 pre가 이미 판단했다
     const v = read(spec).violations;
-    return v.length ? blocked(mode, ev, `완료 전 대조(§3)가 끝나지 않았다:\n${list(v)}`) : PASS;
+    return v.length ? blocked(mode, ev, `완료 전 대조(§3)가 끝나지 않았다:\n${list(v)}`, v) : PASS;
   }
   return PASS;
 }
@@ -196,11 +211,11 @@ const CASES = [
 
   // ── 델타 분기(G11~G23) ──
   ['델타 분기 통과',    'none',  'pre',  'src/app.ts', 0, false, D_OK],
-  ['델타 D1 위반',      'none',  'pre',  'src/app.ts', 2, false, D_NOSEC,  said('D1')],
-  ['델타 D2 위반',      'none',  'pre',  'src/app.ts', 2, false, D_NOTGT,  said('D2')],
+  ['델타 D1 위반',      'none',  'pre',  'src/app.ts', 2, false, D_NOSEC,  said('SG1011')],
+  ['델타 D2 위반',      'none',  'pre',  'src/app.ts', 2, false, D_NOTGT,  said('SG1012')],
   ['활성 문서 우선',    'empty', 'pre',  'src/app.ts', 0, false, D_OK],      // 빈 SPEC의 C 위반이 안 잡힌다
   ['델타 + 문서 Write', 'none',  'pre',  'README.md',  0, false, D_OK],      // SRC 필터가 먼저다
-  ['대조 미기입 완료',  'mini',  'stop', null,         2, false, D_OK,     (d, e) => said('D4')(d, e) ?? left(d)],
+  ['대조 미기입 완료',  'mini',  'stop', null,         2, false, D_OK,     (d, e) => said('SG1014')(d, e) ?? left(d)],
   ['전건 통과 완료',    'mini',  'stop', null,         0, false, D_FULL,   (d) => {
     const s = rd(d, 'SPEC.md');
     if (rd(d, 'SPEC.delta.md')) return '델타가 남아 있다';
@@ -214,7 +229,7 @@ const CASES = [
     if (/Clear|Partial|Missing/.test(s)) return '점검표를 만들었다 — 판단은 기계 몫이 아니다';
     return ordered(s, 'S1. 담기를', 'I2. 수량 기본값', '| S1 | src/cart.ts:10 |');
   }],
-  ['D5 위반 완료',      'mini',  'stop', null,         2, false, D_GHOST,  (d, e) => said('D5')(d, e) ?? left(d)],
+  ['D5 위반 완료',      'mini',  'stop', null,         2, false, D_GHOST,  (d, e) => said('SG1015')(d, e) ?? left(d)],
   ['재진입 + 위반',     'mini',  'stop', null,         0, true,  D_OK,     (d) => (rd(d, 'SPEC.md') !== MINI ? '병합됐다' : left(d))],
   ['재진입 + 정상',     'mini',  'stop', null,         0, true,  D_FULL,   (d) => (rd(d, 'SPEC.delta.md') ? '병합되지 않았다 — 가드는 차단 전용이다'
     : rd(d, 'SPEC.md').includes('항목과 쿠폰을 함께 제거한다') ? null : 'MODIFIED가 반영되지 않았다')],

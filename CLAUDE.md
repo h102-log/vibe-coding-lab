@@ -132,6 +132,9 @@ node framework/specprobe.mjs <SPEC.md 경로>   # 리터럴 4종 카운트, 판�
 # sdd 산출물(SPEC.md) 정적 검사기 — specprobe와 달리 **판정을 종료 코드에 싣는다** (r36)
 node framework/spec-verify.mjs <SPEC.md 경로> [--json]   # exit 0 위반없음 / 1 위반있음 / 2 파일없음·사용법오류
 node framework/spec-verify.mjs --selftest                # r32 픽스처 6장 대조, 어긋나면 exit 1
+# 위 검사들을 SG 번호 룰 + 정적 힌트 한 줄로 재포장하는 단일 CLI (r46 — 검사는 하나도 재구현하지 않는다)
+node framework/specgate.mjs verify <SPEC.md 경로> [--json]   # exit는 spec-verify를 그대로 따른다
+node framework/specgate.mjs --selftest                  # 룰 매핑 전수·mute·훅 로그 18건 대조
 # 검사 5종은 전부 sdd/SKILL.md에 근거가 있다(C1 추론표기 · C2 점검표 10범주 · C3 미확정표 6열 ·
 # C4 문장 전건 지목 · C5 `선택 대기` 전건 재확인). 값어치는 집합 차인 C4·C5고 나머지는 세는 것이다.
 # 골격 독립(A층)만 본다 — 헤딩 번호·절 순서는 검사하지 않는다. 문장 ID가 없는 SPEC은 위반이 아니라 경고다.

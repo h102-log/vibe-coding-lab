@@ -86,12 +86,14 @@ export function inspect(text, spec) {
   text = lines.join('\n'); // 이하 모든 계수는 코드펜스 밖만 본다
   const tbls = tables(lines);
   const V = [], W = []; // 위반 / 경고
-  const violate = (c, msg) => V.push({ check: c, msg });
-  const warn = (c, msg) => W.push({ check: c, msg });
+  // kind = 룰 매핑용 안정 문자열, line = 아는 것만(1-based). specgate.mjs의 RULES가 이 kind로
+  // 번호를 붙인다 — 메시지 문구로 룰을 추정하면 문구 수정이 곧 매핑 파손이라 필드로 싣는다.
+  const violate = (c, msg, kind, line = null) => V.push({ check: c, msg, kind, line });
+  const warn = (c, msg, kind, line = null) => W.push({ check: c, msg, kind, line });
 
   // C1 — 추론 표기 (SKILL.md:34·38). 셀 수 있는 것은 «있는가»뿐이다.
   const inferMarks = text.split('[추론]').length - 1;
-  if (inferMarks === 0) violate('C1', '`[추론]` 표기 0건 — §2가 추론 문장을 하나도 남기지 않았다');
+  if (inferMarks === 0) violate('C1', '`[추론]` 표기 0건 — §2가 추론 문장을 하나도 남기지 않았다', 'C1.none');
 
   // C2 — 점검표 10범주 + 상태 리터럴 (SKILL.md:40-53)
   const LIT = /\b(Clear|Partial|Missing)\b/;
@@ -101,10 +103,10 @@ export function inspect(text, spec) {
   const missingCats = [];
   for (let n = 1; n <= 10; n++) if (!nums.has(n)) missingCats.push(n);
   const badLit = checkRows.filter((r) => !LIT.test(r.cells[1] ?? ''));
-  if (checkRows.length === 0) violate('C2', '점검표 없음 — `| 범주 | 상태 |` 2열 표에 10범주가 없다');
+  if (checkRows.length === 0) violate('C2', '점검표 없음 — `| 범주 | 상태 |` 2열 표에 10범주가 없다', 'C2.none');
   else {
-    if (missingCats.length) violate('C2', `점검표 누락 범주: ${missingCats.join(', ')}`);
-    for (const r of badLit) violate('C2', `상태가 Clear/Partial/Missing이 아니다 — ${spec}:${r.line + 1} «${r.cells[0]}» → «${r.cells[1] ?? ''}»`);
+    if (missingCats.length) violate('C2', `점검표 누락 범주: ${missingCats.join(', ')}`, 'C2.missingCat');
+    for (const r of badLit) violate('C2', `상태가 Clear/Partial/Missing이 아니다 — ${spec}:${r.line + 1} «${r.cells[0]}» → «${r.cells[1] ?? ''}»`, 'C2.badLiteral', r.line + 1);
   }
 
   // C3 — 미확정표 6열 + `선택 대기` 리터럴 (SKILL.md:64-68)
@@ -114,11 +116,11 @@ export function inspect(text, spec) {
   // 그 리터럴을 «인용»하는 표까지 미확정표로 삼켜, 거기 실린 문장 ID가 통째로 C4 분모에서 빠진다.
   const undecidedTbls = undecidedTables(tbls);
   let pendingIds = [], undecidedIds = new Set(), undecidedEnd = -1;
-  if (!undecidedTbls.length) violate('C3', '미확정표 없음 — `| # | 침묵 지점 | 적용한 기본값 | 대안 | 상태 | 번복 조건 |` 6열 표가 없다');
+  if (!undecidedTbls.length) violate('C3', '미확정표 없음 — `| # | 침묵 지점 | 적용한 기본값 | 대안 | 상태 | 번복 조건 |` 6열 표가 없다', 'C3.none');
   else {
     undecidedEnd = Math.max(...undecidedTbls.map((t) => t.end));
     for (const t of undecidedTbls) {
-      if (t.cols !== 6) violate('C3', `미확정표가 ${t.cols}열 — 6열이어야 한다 (${spec}:${t.start + 1})`);
+      if (t.cols !== 6) violate('C3', `미확정표가 ${t.cols}열 — 6열이어야 한다 (${spec}:${t.start + 1})`, 'C3.badCols', t.start + 1);
       // 헤더에 «상태»를 포함하는 열이 둘이면(«기본값 상태» 등) 뒤쪽을 쓴다 — SKILL.md:65의 상태는 5열이다
       const hdr = t.rows[0].cells;
       const exact = hdr.lastIndexOf('상태');
@@ -131,7 +133,7 @@ export function inspect(text, spec) {
     }
     // 상태 열을 잘못 집거나 셀이 밀리면 pending이 0이 되고 C5가 통째로 꺼진다 — 그때 침묵하지 않는다.
     if (!pendingIds.length && text.includes('선택 대기'))
-      warn('C3', '`선택 대기`가 본문에는 있는데 미확정표의 상태 열에서는 잡히지 않았다 — 열 위치를 사람이 확인해야 한다');
+      warn('C3', '`선택 대기`가 본문에는 있는데 미확정표의 상태 열에서는 잡히지 않았다 — 열 위치를 사람이 확인해야 한다', 'C3.pendingLost');
   }
 
   // C4 — §1·§2 문장이 완료 전 대조에서 전건 지목됐는가 (SKILL.md:74-78)
@@ -149,21 +151,21 @@ export function inspect(text, spec) {
   }
   const sentIds = [...defs.keys()];
   let c4 = null;
-  if (!sentIds.length) warn('C4', '문장 ID가 없다 — 판정 불가 (S1·I2 형태의 ID로 문장을 매기면 대조가 검사된다)');
+  if (!sentIds.length) warn('C4', '문장 ID가 없다 — 판정 불가 (S1·I2 형태의 ID로 문장을 매기면 대조가 검사된다)', 'C4.noId');
   else {
     const hit = new Set(sentIds.filter((id) => mentions(lines.slice(defs.get(id) + 1).join('\n'), [id]).length));
     const miss = sentIds.filter((id) => !hit.has(id));
     c4 = { total: sentIds.length, hit: hit.size, miss };
     // 원문을 붙인다 — 문장 ID처럼 생긴 질문 라벨(`Q1 (답변 완료…)`)을 사람이 바로 가려내야 한다
     for (const id of miss)
-      violate('C4', `문장 ${id}이 완료 전 대조에서 지목되지 않았다 (${spec}:${defs.get(id) + 1} «${lines[defs.get(id)].trim().slice(0, 50)}»)`);
+      violate('C4', `문장 ${id}이 완료 전 대조에서 지목되지 않았다 (${spec}:${defs.get(id) + 1} «${lines[defs.get(id)].trim().slice(0, 50)}»)`, 'C4.miss', defs.get(id) + 1);
     // SKILL.md:77은 «"있을 것이다"가 아니라 어느 파일 어느 줄인지» 요구한다. ID 재등장만으로는
     // 빈 셀·«구현 안 함»도 통과하므로, 위치 표기가 없는 지목은 위반이 아니라 경고로 낸다
     // («실행 확인»·«부재로 충족»처럼 위치가 없어도 정당한 지목이 실물에 있다 — 게이트로 올리면 위양성).
     const located = new Set(mentions(lines.filter((l) => POS.test(l)).join('\n'), sentIds));
     const vague = [...hit].filter((id) => !located.has(id));
     c4.vague = vague;
-    if (vague.length) warn('C4', `지목은 있으나 «파일:줄»이 없는 문장 ${vague.length}건: ${vague.join(', ')} (SKILL.md:77)`);
+    if (vague.length) warn('C4', `지목은 있으나 «파일:줄»이 없는 문장 ${vague.length}건: ${vague.join(', ')} (SKILL.md:77)`, 'C4.vague');
     // 앵커 대상 위치(spec-anchor용). **판정 축이 아니다** — 위반도 경고도 한 건 더하지 않는다.
     // 위치 표기가 있는 줄만 훑는다(ID×줄 전수 대조는 큰 SPEC에서 낭비다). 정의 줄과 그 앞은
     // 제외 — §1의 `(근거: CONTRACT.md:12)` 같은 근거 위치가 구현 위치로 오인되면 안 된다.
@@ -189,15 +191,18 @@ export function inspect(text, spec) {
   if (pendingIds.length) {
     const numeric = pendingIds.filter((p) => /^\d+$/.test(p.id));
     if (numeric.length === pendingIds.length)
-      warn('C5', `미확정 항목 ID가 순수 번호(${pendingIds.map((p) => p.id).join(', ')}) — 문서 안 재등장을 셀 수 없어 판정 불가`);
+      warn('C5', `미확정 항목 ID가 순수 번호(${pendingIds.map((p) => p.id).join(', ')}) — 문서 안 재등장을 셀 수 없어 판정 불가`, 'C5.numericId');
     else {
       const ids = pendingIds.filter((p) => !/^\d+$/.test(p.id)).map((p) => p.id);
       const tail = lines.slice(undecidedEnd + 1).join('\n');
       const hit = new Set(mentions(tail, ids));
       const miss = ids.filter((id) => !hit.has(id));
       c5 = { total: ids.length, hit: hit.size, miss };
-      for (const id of miss) violate('C5', `\`선택 대기\` 항목 ${id}이 재확인 목록에 없다 (${spec}:${pendingIds.find((p) => p.id === id).line + 1})`);
-      if (numeric.length) warn('C5', `번호 ID ${numeric.length}건은 판정에서 제외했다`);
+      for (const id of miss) {
+        const at = pendingIds.find((p) => p.id === id).line + 1;
+        violate('C5', `\`선택 대기\` 항목 ${id}이 재확인 목록에 없다 (${spec}:${at})`, 'C5.miss', at);
+      }
+      if (numeric.length) warn('C5', `번호 ID ${numeric.length}건은 판정에서 제외했다`, 'C5.numericExcluded');
     }
   }
 
