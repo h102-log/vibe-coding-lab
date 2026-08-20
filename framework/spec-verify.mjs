@@ -42,6 +42,13 @@ export function tables(lines) {
   return out;
 }
 
+// 미확정표 특정 — C3·C5가 쓰고, spec-delta의 병합이 «같은 표»에 U행을 붙일 때도 이걸 쓴다.
+// 갈라지면 검사가 보는 표와 병합이 쓰는 표가 달라진다.
+export function undecidedTables(tbls) {
+  const byHeader = tbls.filter((t) => t.rows[0]?.cells.some((c) => c.includes('침묵 지점')) && t.rows[0].cells.some((c) => c.includes('상태')));
+  return byHeader.length ? byHeader : tbls.filter((t) => t.rows.some((r) => r.cells.some((c) => c.includes('선택 대기'))));
+}
+
 // ── ID 토큰 ────────────────────────────────────────────────────────────────
 // 문장 ID = 줄 선두(표 첫 셀 / 리스트 마커 뒤)에 오는 S1 · I12 · R3 · S7a 형태.
 export const SENT_ID = /^\*{0,2}([A-Z]{1,3}\d{1,3}[a-z]?)\*{0,2}(?=[\s.):|]|$)/;
@@ -105,8 +112,7 @@ export function inspect(text, spec) {
   // 침묵 지점을 두 표로 쪼개 적는 SPEC이 있다 — 첫 표만 보면 나머지 표의 `선택 대기`가 C5 밖으로 샌다.
   // 헤더(SKILL.md:65 문자열)로 잡는 것이 우선이다. `선택 대기` 폴백을 같이 쓰면 §3 대조표처럼
   // 그 리터럴을 «인용»하는 표까지 미확정표로 삼켜, 거기 실린 문장 ID가 통째로 C4 분모에서 빠진다.
-  const byHeader = tbls.filter((t) => t.rows[0]?.cells.some((c) => c.includes('침묵 지점')) && t.rows[0].cells.some((c) => c.includes('상태')));
-  const undecidedTbls = byHeader.length ? byHeader : tbls.filter((t) => t.rows.some((r) => r.cells.some((c) => c.includes('선택 대기'))));
+  const undecidedTbls = undecidedTables(tbls);
   let pendingIds = [], undecidedIds = new Set(), undecidedEnd = -1;
   if (!undecidedTbls.length) violate('C3', '미확정표 없음 — `| # | 침묵 지점 | 적용한 기본값 | 대안 | 상태 | 번복 조건 |` 6열 표가 없다');
   else {
