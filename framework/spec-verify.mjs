@@ -48,7 +48,11 @@ export const SENT_ID = /^\*{0,2}([A-Z]{1,3}\d{1,3}[a-z]?)\*{0,2}(?=[\s.):|]|$)/;
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
 const hasToken = (text, id) => new RegExp(`(?<![A-Za-z0-9])${esc(id)}(?![0-9A-Za-z])`).test(text);
 // 지목의 «위치 표기» = `파일:줄` · `` `:12` `` · `:12-20`. C4 경고와 spec-delta의 D4가 같은 기준을 쓴다.
-export const POS = /[\w./\\-]+\.\w{1,5}:\d+|`:\d+`|:\d+\s*[-–—]\s*\d+/;
+// POS_FILE = 그중 앵커가 가능한 «파일:줄[-끝줄]»의 캡처판(spec-anchor가 쓴다). POS가 이것의
+// source를 첫 대안으로 삼아 한 소스를 공유한다 — 갈라지면 «경고는 없는데 앵커는 못 하는» 지목이 생긴다.
+// /g라서 test()에 쓰면 lastIndex가 남는다. matchAll 전용이다.
+export const POS_FILE = /([\w./\\-]+\.\w{1,5}):(\d+)(?:\s*[-–—]\s*(\d+))?/g;
+export const POS = new RegExp(`${POS_FILE.source}|\`:\\d+\`|:\\d+\\s*[-–—]\\s*\\d+`);
 
 // `R1~R8` · `U1-U10` · `T1–T8` 같은 범위 표기를 개별 ID로 편다. SKILL.md는 열거 형식을
 // 규정하지 않으므로 범위 표기도 지목으로 인정한다.
@@ -154,6 +158,24 @@ export function inspect(text, spec) {
     const vague = [...hit].filter((id) => !located.has(id));
     c4.vague = vague;
     if (vague.length) warn('C4', `지목은 있으나 «파일:줄»이 없는 문장 ${vague.length}건: ${vague.join(', ')} (SKILL.md:77)`);
+    // 앵커 대상 위치(spec-anchor용). **판정 축이 아니다** — 위반도 경고도 한 건 더하지 않는다.
+    // 위치 표기가 있는 줄만 훑는다(ID×줄 전수 대조는 큰 SPEC에서 낭비다). 정의 줄과 그 앞은
+    // 제외 — §1의 `(근거: CONTRACT.md:12)` 같은 근거 위치가 구현 위치로 오인되면 안 된다.
+    // 값이 빈 배열인 키가 곧 «지목은 있으나 앵커 못 하는 문장»이다(spec-anchor의 A3).
+    const positions = Object.fromEntries(sentIds.map((id) => [id, []]));
+    for (let i = 0; i < lines.length; i++) {
+      const ms = [...lines[i].matchAll(POS_FILE)];
+      if (!ms.length) continue;
+      for (const id of mentions(lines[i], sentIds)) {
+        if (i <= defs.get(id)) continue;
+        for (const m of ms) {
+          const span = { file: m[1], start: +m[2], end: +(m[3] ?? m[2]), specLine: i + 1 };
+          if (!positions[id].some((p) => p.file === span.file && p.start === span.start && p.end === span.end))
+            positions[id].push(span);
+        }
+      }
+    }
+    c4.positions = positions;
   }
 
   // C5 — `선택 대기` 항목이 재확인 목록에 전건 나오는가 (SKILL.md:79)
