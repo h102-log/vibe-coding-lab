@@ -82,7 +82,15 @@ node framework/spec-verify.mjs --selftest       # 픽스처 6장 대조
 node framework/spec-delta.mjs verify SPEC.delta.md   # D1~D5. merge로 바꾸면 손으로 병합한다
 node framework/spec-delta.mjs --selftest        # 검사 9건 + 병합 10건
 node framework/hooks/spec-gate.mjs --selftest   # 게이트 분기 23건 대조
+node framework/spec-interview.mjs stats         # 침묵 인터뷰 3택 집계 — 기록은 /spec 문안이 한다
+node framework/spec-interview.mjs --selftest    # 기록·집계 12건 대조
+node framework/spec-anchor.mjs record SPEC.md   # §3 지목의 실존·줄 범위 확인 → SPEC.anchors.json
+node framework/spec-anchor.mjs drift  SPEC.md   # 앵커 대조 missing/stale/modified. exit 1 = 다시 읽을 문장이 있다
+node framework/spec-anchor.mjs --selftest       # record 7건 + drift 8건
 ```
+
+`spec-anchor`는 **어떤 훅에도 걸려 있지 않다** — 명시 실행 전용이고, 안 돌리면 아무것도 실증되지
+않는다. `drift`의 exit 0은 «문장이 아직 참»이 아니라 «앵커 스팬이 그대로»라는 뜻이다.
 
 ## 한계 (알려진 것)
 

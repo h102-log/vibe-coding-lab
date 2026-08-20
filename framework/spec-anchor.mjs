@@ -19,8 +19,10 @@ import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { inspect } from './spec-verify.mjs';
+import { inspectDelta } from './spec-delta.mjs';
 
 const ANCHORS = 'SPEC.anchors.json';
+const DELTA = 'SPEC.delta.md';
 const die = (msg) => { console.error(msg); process.exit(2); };
 const slash = (p) => p.split('\\').join('/');
 const rng = (a, b) => (a === b ? `${a}` : `${a}-${b}`);
@@ -40,7 +42,9 @@ function readSpec(specPath) {
   let text;
   try { text = readFileSync(specPath, 'utf8'); }
   catch (e) { die(e.code === 'ENOENT' ? `SPEC이 없다: ${slash(specPath)}` : `SPEC을 읽을 수 없다: ${e.message}`); }
-  return inspect(text, slash(specPath));
+  // 원문을 얹어 둔다 — drift가 inspectDelta에 본 SPEC 텍스트를 넘겨야 한다. record·drift의 반환은
+  // 둘 다 명시 필드만 만들므로 `--json`에 SPEC 전문이 새지 않는다.
+  return { ...inspect(text, slash(specPath)), text };
 }
 
 // ── record ─────────────────────────────────────────────────────────────────
@@ -101,7 +105,18 @@ export function drift(specPath) {
   catch (e) { die(e.code === 'ENOENT' ? `${ANCHORS}가 없다 — 먼저 record를 돌려라` : `${ANCHORS} 파싱 실패: ${e.message}`); }
 
   const anchors = doc.anchors ?? {};
-  const missing = [], stale = [], modified = [];
+  const missing = [], stale = [], modified = [], W = [];
+
+  // 활성 델타가 있을 때만 modified가 산다 — 게이트가 Stop에서 병합하고 지우므로(spec-gate.mjs)
+  // 이 창은 «수정 세션 진행 중»이다. 재방문 시점엔 델타가 없어 modified가 0이고, 그건 고장이 아니다.
+  // 델타의 위반 여부는 보지 않는다 — 차단은 게이트 몫이고 여기서 재는 것은 «선언이 있었는가»뿐이다.
+  let declared = null;
+  const dpath = join(root, DELTA);
+  if (existsSync(dpath)) {
+    try { declared = new Set(inspectDelta(readFileSync(dpath, 'utf8'), r.text, DELTA).ids.modified); }
+    catch (e) { W.push({ check: 'A4', msg: `${DELTA}를 읽지 못해 modified 판정 없이 진행한다 (${e.code ?? e.message})` }); }
+  }
+
   let checked = 0;
   for (const [id, list] of Object.entries(anchors)) {
     for (const a of list) {
@@ -115,14 +130,16 @@ export function drift(specPath) {
         continue;
       }
       if (a.endLine > ls.length) { stale.push({ ...hit, why: '범위 소멸' }); continue; }
-      if (hashSpan(ls, a.startLine, a.endLine) !== a.hash) stale.push({ ...hit, why: '해시 불일치' });
-      // 해시 일치 → 드리프트 아님. 3범주의 modified(«MODIFIED 선언, 앵커 미갱신»)는 KF1의
-      // 병합 도입 후 R-A3에서 산다 — 그때까지 이 범주는 항상 비어 있고, 그것은 고장이 아니다.
+      // 3범주의 갈림길 — 선언된 수정이면 조치가 «record 재실행»이고, 아니면 «문장 재검토»다.
+      // 해시 일치는 드리프트가 아니다(그렇다고 문장이 참이라는 뜻은 아니다 — 파일 머리 주석).
+      if (hashSpan(ls, a.startLine, a.endLine) !== a.hash) {
+        if (declared?.has(id)) modified.push({ ...hit, why: '선언된 수정, 앵커 미갱신' });
+        else stale.push({ ...hit, why: '해시 불일치' });
+      }
     }
   }
 
   // 부수 대조 2건은 경고로만 낸다(exit에 안 싣는다) — 앵커가 오래됐다는 신호이지 드리프트가 아니다.
-  const W = [];
   const pos = r.c4?.positions ?? {};
   const gone = Object.keys(anchors).filter((id) => !(id in pos));
   const fresh = Object.entries(pos).filter(([id, l]) => l.length && !(id in anchors)).map(([id]) => id);
@@ -132,7 +149,8 @@ export function drift(specPath) {
   const stamps = Object.values(anchors).flat().map((a) => a.recordedAt).filter(Boolean).sort();
   const drifted = new Set([...missing, ...stale, ...modified].map((x) => x.id));
   return {
-    subcommand: 'drift', spec: r.spec, checked, recordedAt: stamps.pop() ?? null,
+    subcommand: 'drift', spec: r.spec, delta: declared ? DELTA : null,
+    checked, recordedAt: stamps.pop() ?? null,
     drift: { missing, stale, modified }, drifted: [...drifted],
     ids: Object.keys(anchors).length, warnings: W, exit: drifted.size ? 1 : 0,
   };
@@ -157,9 +175,10 @@ function reportDrift(r) {
   console.log(`  앵커 ${r.checked}건 대조 (기록 ${r.recordedAt ?? '?'})`);
   row('missing', r.drift.missing);
   row('stale', r.drift.stale);
-  row('modified', r.drift.modified, '(활성 델타 없음 — KF1 병합 도입 후 R-A3에서 산다)');
+  row('modified', r.drift.modified, r.delta ? '' : `(활성 델타 없음 — ${DELTA}가 있을 때만 사는 범주다)`);
   for (const w of r.warnings) console.log(`    [경고 ${w.check}] ${w.msg}`);
-  console.log(`  → 갈라진 문장 ${r.drifted.length} · 앵커 그대로인 문장 ${r.ids - r.drifted.length}`);
+  console.log(`  → 갈라진 문장 ${r.drifted.length} · 앵커 그대로인 문장 ${r.ids - r.drifted.length}`
+    + (r.drift.modified.length ? ` · 선언된 수정 ${r.drift.modified.length}건은 record 재실행으로 갱신하라` : ''));
 }
 
 // ── --selftest ─────────────────────────────────────────────────────────────
@@ -180,6 +199,23 @@ const SPEC_OK = `# SPEC — mini
 | --- | --- |
 | S1 | src/a.ts:2-4 |
 | I1 | src/b.ts:1 |
+`;
+
+// S1만 MODIFIED로 선언한다 — 같은 시드에서 I1도 함께 바꿔야 «선언 유무가 곧 범주 경계»가 고정된다
+// (미선언 쪽이 없으면 «전부 modified가 됐다»와 구별되지 않는다). 형식은 spec-delta.mjs의 V1을 따른다.
+const DELTA_S1 = `# DELTA — 더하기를 둘로
+
+## ADDED
+
+## MODIFIED
+- S1. 더하기 함수가 두 인자를 더한다 — 대상 \`src/a.ts:add\`
+
+## REMOVED
+
+## 대조
+| 문장 | 코드 위치 |
+| --- | --- |
+| S1 | src/a.ts:2-4 |
 `;
 
 const SPEC_NOID = `# SPEC — 산문만
@@ -224,6 +260,14 @@ function afterRecord(mutate) {
   return { p, ...call(p, 'drift') };
 }
 const put = (p, f, body) => writeFileSync(join(p, f), body);
+
+// d7·d8 공통 — 델타가 S1만 선언한 채로 S1·I1 스팬이 둘 다 바뀐 상태. 줄 수는 유지한다(줄이 늘면
+// A2로 막혀 d8의 record 재실행이 «범위 무효»로 실패하고, 그러면 재기록 경로를 못 잰다).
+const declareAndBreak = (p) => {
+  put(p, DELTA, DELTA_S1);
+  put(p, 'src/a.ts', SRC['src/a.ts'].replace('x + 1', 'x + 2'));
+  put(p, 'src/b.ts', 'export const b = 3;\n');
+};
 
 const CASES = [
   ['r1 정상 지목 2건', () => {
@@ -290,6 +334,19 @@ const CASES = [
   ['d6 anchors 없음', () => {
     const { status } = afterRecord((p) => rmSync(join(p, ANCHORS)));
     return status === 2 || `exit=${status}`;
+  }],
+  ['d7 선언된 수정 + 미선언', () => {
+    const { status, j } = afterRecord(declareAndBreak);
+    const m = j.drift.modified, s = j.drift.stale;
+    return (status === 1 && j.delta === DELTA && m.length === 1 && m[0].id === 'S1' && s.length === 1 && s[0].id === 'I1')
+      || `exit=${status} delta=${j.delta} ${JSON.stringify(j.drift)}`;
+  }],
+  ['d8 재기록으로 회복', () => {
+    const { p } = afterRecord(declareAndBreak);
+    const rec = call(p, 'record');
+    if (rec.status !== 0) return `record 재실행 exit=${rec.status} ${JSON.stringify(rec.j.violations)}`;
+    const { status, j } = call(p, 'drift');
+    return (status === 0 && j.drifted.length === 0) || `exit=${status} ${JSON.stringify(j.drift)}`;
   }],
 ];
 
