@@ -1,17 +1,23 @@
 #!/usr/bin/env node
 // specgate — 검사기들의 위반을 SG 번호 룰 + 정적 힌트로 재포장하는 단일 CLI.
 // **검사를 하나도 재구현하지 않는다** — 기존 export를 부르고 번호·포맷만 입힌다(KF4).
-//   node framework/specgate.mjs verify <SPEC.md 경로> [--json]   # spec-verify.inspect() 랩 — C1~C5
-//   node framework/specgate.mjs probe  <SPEC.md 경로>            # specprobe 패스스루 — 판정 없음
+//   node framework/specgate.mjs verify <SPEC.md 경로>       [--json]   # spec-verify.inspect() 랩 — C1~C5
+//   node framework/specgate.mjs delta  <SPEC.delta.md 경로> [--json]   # spec-delta.inspectDelta() 랩 — D1~D5
+//   node framework/specgate.mjs drift  <SPEC.md 경로>       [--json]   # spec-anchor.drift() 랩 — 3범주 + A4
+//   node framework/specgate.mjs probe  <SPEC.md 경로>                  # specprobe 패스스루 — 판정 없음
 //   node framework/specgate.mjs --selftest
 // exit 0 Error 없음 / 1 있음 / 2 파일 없음·사용법 오류. Warning만 있으면 0(경고는 판정이 아니다).
 // 검출력은 한 건도 늘지 않는다 — C4·C5가 «ID를 다시 적었는가»만 재는 한계는 번호를 붙여도 그대로다.
-import { readFileSync, writeFileSync, copyFileSync, existsSync, rmSync, mkdtempSync } from 'node:fs';
+// ⚠ `drift`의 `loc.file`만 **SPEC이 아니라 코드 파일**이다 — 드리프트의 조치 대상이 코드이기
+// 때문이다. verify·delta에서 성립하는 «loc.file === target» 불변식이 거기서만 깨진다.
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync, rmSync, mkdtempSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { inspect } from './spec-verify.mjs';
+import { inspectDelta } from './spec-delta.mjs';
+import { drift as anchorDrift } from './spec-anchor.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SELF = fileURLToPath(import.meta.url);
@@ -45,7 +51,18 @@ export const RULES = {
   D3: { id: 'SG1013', hint: 'ID 접두어를 S/I/U로 맞추고 본 SPEC과 번호가 겹치지 않게 한다' },
   D4: { id: 'SG1014', hint: '그 문장을 `## 대조`에 «파일:줄»로 지목한다' },
   D5: { id: 'SG1015', hint: 'REMOVED가 지목한 ID가 본 SPEC에 실제로 있는지 확인한다' },
-  // A 블록(SG1021~1027 — record A1~A3 · drift 3범주 · A4 경고)은 R3에서 등재한다.
+  // A 블록 — spec-anchor. A1~A3은 `record`가 내는데 **specgate는 record를 감싸지 않는다**
+  // (선택 대기 #8: 이 CLI는 읽기 전용 판정만 감싸고, record는 SPEC.anchors.json을 쓴다).
+  // 그래도 등재하는 이유는 매핑 전수성 하나다 — 소스에 있는 check가 RULES에 없으면 T3b가 깬다.
+  A1: { id: 'SG1021', hint: '§3 지목의 파일 경로를 실존 파일로 고친 뒤 `spec-anchor record`를 다시 돌린다' },
+  A2: { id: 'SG1022', hint: '줄 범위를 파일 실제 길이 안의 start-end로 고친 뒤 `spec-anchor record`를 다시 돌린다' },
+  A3: { id: 'SG1023', hint: '드리프트 감시가 필요한 문장이면 그 지목에 «파일:줄»을 붙인다' },
+  // 3범주의 조치가 서로 다르다 — missing·stale은 «문장을 다시 읽어라»고 modified는 기계적 갱신이다.
+  // 힌트가 같으면 이 구분이 사라지고, 그러면 범주를 셋으로 가른 이유가 없어진다(r45 §1).
+  'drift.missing':  { id: 'SG1024', hint: '파일이 사라졌다 — 그 문장이 아직 참인지 다시 읽고 SPEC의 지목을 고친다' },
+  'drift.stale':    { id: 'SG1025', hint: '스팬이 갈라졌다 — 그 문장이 아직 참인지 다시 읽고, 참이면 `spec-anchor record`로 갱신한다' },
+  'drift.modified': { id: 'SG1026', hint: '델타가 선언한 수정이다 — `spec-anchor record`를 다시 돌려 앵커만 갱신한다' },
+  A4: { id: 'SG1027', hint: '앵커가 현행 SPEC과 어긋난다 — `spec-anchor record`를 다시 돌린다' },
 };
 
 // 룰이 없는 kind를 조용히 숨기지 않는다 — 눈에 띄어야 표에 등재된다.
@@ -92,28 +109,65 @@ function applyMute(findings, mute) {
   return { kept, muted, notes };
 }
 
-// ── verify ─────────────────────────────────────────────────────────────────
-export function verify(specPath) {
-  let text;
-  try { text = readFileSync(specPath, 'utf8'); }
-  catch (e) { return { fatal: `파싱 실패: ${e.message}`, exit: 2 }; }
+// ── 서브커맨드 ──────────────────────────────────────────────────────────────
+// 셋이 공유하는 꼬리 — 설정 로드 · mute · 집계 · exit. 앞머리(무엇을 읽고 어느 검사기를 부르나)만 다르다.
+const slash = (p) => p.split(/[\\/]/).join('/');
+const fromInspect = (r, file) => [
+  ...r.violations.map((f) => mk(f, 'Error', file)),
+  ...r.warnings.map((f) => mk(f, 'Warning', file)),
+];
 
-  const target = specPath.split(/[\\/]/).join('/');
-  const r = inspect(text, target);
-  const all = [
-    ...r.violations.map((f) => mk(f, 'Error', target)),
-    ...r.warnings.map((f) => mk(f, 'Warning', target)),
-  ];
-  const cfg = loadConfig(dirname(resolve(specPath)));
-  const { kept, muted, notes } = applyMute(all, cfg.mute);
+function pack(subcommand, target, findings, dir) {
+  const cfg = loadConfig(dir);
+  const { kept, muted, notes } = applyMute(findings, cfg.mute);
   const counts = {
     error: kept.filter((f) => f.severity === 'Error').length,
     warning: kept.filter((f) => f.severity === 'Warning').length,
   };
   return {
-    tool: 'specgate', subcommand: 'verify', target,
+    tool: 'specgate', subcommand, target,
     findings: kept, muted, notes: [...cfg.notes, ...notes], counts, exit: counts.error ? 1 : 0,
   };
+}
+
+export function verify(specPath) {
+  let text;
+  try { text = readFileSync(specPath, 'utf8'); }
+  catch (e) { return { fatal: `파싱 실패: ${e.message}`, exit: 2 }; }
+  const target = slash(specPath);
+  return pack('verify', target, fromInspect(inspect(text, target), target), dirname(resolve(specPath)));
+}
+
+// base 탐색은 spec-delta.mjs의 load()와 같은 규칙이다(델타 옆 SPEC.md, 없으면 콜드스타트).
+// 그쪽 load()는 export가 아니고 실패 시 exit(2)를 직접 부른다 — 4줄 재구현이 verify의 fatal
+// 패턴과 맞는다. 규칙이 갈라지면 T16(exit 패스스루)이 잡는다.
+export function delta(deltaPath) {
+  let dtext;
+  try { dtext = readFileSync(deltaPath, 'utf8'); }
+  catch (e) { return { fatal: `읽기 실패: ${e.message}`, exit: 2 }; }
+  const dir = dirname(resolve(deltaPath));
+  const bp = join(dir, 'SPEC.md');
+  const btext = existsSync(bp) ? readFileSync(bp, 'utf8') : null;
+  const target = slash(deltaPath);
+  return pack('delta', target, fromInspect(inspectDelta(dtext, btext, target), target), dir);
+}
+
+// drift()의 반환에는 violations가 없다 — 3범주를 Error finding으로 **변환**한다(파일 머리 ⚠ 참조:
+// 여기서만 loc가 코드 파일이다). SPEC이나 SPEC.anchors.json이 없으면 spec-anchor의 die()가 그
+// 자리에서 exit 2를 낸다 — specgate의 exit 규약과 일치하고, verify가 fatal일 때 --json을 내지
+// 않는 것과도 동작이 같다. 그래서 spec-anchor.mjs는 한 글자도 안 고친다.
+const rng = (a, b) => (a === b ? `${a}` : `${a}-${b}`);
+export function driftReport(specPath) {
+  const target = slash(specPath);
+  const r = anchorDrift(specPath);
+  const findings = [];
+  for (const k of ['missing', 'stale', 'modified'])
+    for (const a of r.drift[k])
+      findings.push(mk(
+        { check: `drift.${k}`, msg: `${a.id} → ${a.file}:${rng(a.startLine, a.endLine)} (${a.why})`, line: a.startLine },
+        'Error', a.file));
+  findings.push(...r.warnings.map((w) => mk(w, 'Warning', target)));
+  return pack('drift', target, findings, dirname(resolve(specPath)));
 }
 
 function report(r) {
@@ -158,14 +212,70 @@ U2는 이번 범위에서 유지한다.
 `;
 const EMPTY = '# SPEC\n\n대충 만든다.\n';
 
+// 델타 2장 — 위반 없음(3절 다 있고 S9가 위치까지 지목됨) / D1 위반(`## ADDED` 절 없음).
+const DELTA_OK = `# DELTA
+
+## ADDED
+- S9. 새 문장이 있다.
+
+## MODIFIED
+
+## REMOVED
+
+## 대조
+| 문장 | 코드 위치 |
+| --- | --- |
+| S9 | src/x.ts:1 |
+`;
+const DELTA_BAD = `# DELTA — ADDED 절이 없다
+
+## MODIFIED
+
+## REMOVED
+`;
+
+// drift 3범주를 한 시드에서 전부 밟는다 — S1은 델타로 선언하고 고쳐서 modified,
+// I1은 선언 없이 고쳐서 stale, S2는 파일을 지워서 missing. 정적 대조로는 이 3키를 못 잡는다
+// (specgate가 만드는 이름이라 spec-anchor 소스에 리터럴이 없다).
+const A_SPEC = `# SPEC — anchor
+
+## 1. 명시된 것
+- S1. 더하기가 있다.
+- S2. 빼기가 있다.
+- I1. 상수 b가 있다.
+
+## 3. 완료 전 대조
+| 문장 | 코드 위치 |
+| --- | --- |
+| S1 | src/a.ts:1 |
+| S2 | src/c.ts:1 |
+| I1 | src/b.ts:1 |
+`;
+const A_DELTA = `# DELTA — 더하기를 고친다
+
+## ADDED
+
+## MODIFIED
+- S1. 더하기가 둘을 더한다 — 대상 \`src/a.ts:add\`
+
+## REMOVED
+
+## 대조
+| 문장 | 코드 위치 |
+| --- | --- |
+| S1 | src/a.ts:1 |
+`;
+const A_SRC = { 'src/a.ts': 'export const a = 1;\n', 'src/b.ts': 'export const b = 2;\n', 'src/c.ts': 'export const c = 3;\n' };
+
 function selftest() {
   const proj = mkdtempSync(join(tmpdir(), 'specgate-'));
   const spec = join(proj, 'SPEC.md');
   const T = [];
   const t = (name, fn) => T.push([name, fn]);
-  const clean = () => { for (const f of ['SPEC.md', '.specgate.json', '.specgate-log.jsonl']) rmSync(join(proj, f), { force: true }); };
+  const clean = () => { for (const f of ['SPEC.md', 'SPEC.delta.md', 'SPEC.anchors.json', '.specgate.json', '.specgate-log.jsonl']) rmSync(join(proj, f), { force: true }); };
   const seed = (fixture, cfg) => { clean(); copyFileSync(F(fixture), spec); if (cfg) writeFileSync(join(proj, '.specgate.json'), cfg); return spec; };
   const inline = (text) => { clean(); writeFileSync(spec, text); return spec; };
+  const indelta = (text) => { clean(); const p = join(proj, 'SPEC.delta.md'); writeFileSync(p, text); return p; };
 
   // T1 finding 수 · T2 exit 패스스루 · T3a 미배정 0 — 픽스처 6장
   for (const n of NAMES) t(`T1/T2/T3a ${n}`, () => {
@@ -182,12 +292,16 @@ function selftest() {
   });
 
   // T3b — 매핑 전수성. 픽스처가 못 밟는 kind까지 소스에서 직접 뽑아 대조한다(이쪽이 진짜 전수다).
+  // A 블록(r47의 T20)도 여기서 잡는다 — 성질이 같고 읽는 파일만 다르다. drift 3범주는 소스에
+  // 리터럴이 없어 정적으로 못 잡히고, T18이 런타임으로 밟는다.
   t('T3b 소스 kind 전수', () => {
     const miss = [];
     const vs = readFileSync(join(HERE, 'spec-verify.mjs'), 'utf8');
     for (const m of vs.matchAll(/'(C\d\.\w+)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
     const ds = readFileSync(join(HERE, 'spec-delta.mjs'), 'utf8');
     for (const m of ds.matchAll(/(?:violate|warn)\('(D\d)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
+    const as = readFileSync(join(HERE, 'spec-anchor.mjs'), 'utf8');
+    for (const m of as.matchAll(/check: '(A\d)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
     return miss.length ? `RULES 미등재: ${[...new Set(miss)].join(', ')}` : null;
   });
 
@@ -282,6 +396,60 @@ function selftest() {
     return got === JSON.stringify(ids) ? null : `rules=${got} ≠ stderr=${JSON.stringify(ids)}`;
   });
 
+  // ── R3 — delta·drift ────────────────────────────────────────────────────
+  // 래퍼의 exit가 감싼 도구의 판정과 어긋나면 안 된다(계획서 §4-1 패스스루 원칙).
+  t('T16 delta exit 패스스루', () => {
+    for (const [name, text] of [['위반없음', DELTA_OK], ['위반있음', DELTA_BAD]]) {
+      const p = indelta(text);
+      const mine = call(['delta', p]).status;
+      const direct = spawnSync(process.execPath, [join(HERE, 'spec-delta.mjs'), 'verify', p], { encoding: 'utf8' }).status;
+      if (mine !== direct) return `${name}: exit ${mine} ≠ spec-delta ${direct}`;
+    }
+    return null;
+  });
+
+  t('T17 D 블록 매핑', () => {
+    const j = JSON.parse(call(['delta', indelta(DELTA_BAD), '--json']).stdout);
+    if (!j.findings.some((f) => f.ruleId === 'SG1011' && f.severity === 'Error'))
+      return `SG1011이 없다 (${j.findings.map((f) => f.ruleId).join(',')})`;
+    const un = j.findings.filter((f) => f.ruleId === UNASSIGNED);
+    return un.length ? `미배정 ${un.map((f) => f.check).join(',')}` : null;
+  });
+
+  // 3범주를 한 번에 밟는다. loc가 SPEC이 아니라 코드 파일이라는 비대칭도 여기서 단언한다 —
+  // --json 소비자에게 그게 계약이다.
+  t('T18 drift 3범주', () => {
+    const p = mkdtempSync(join(tmpdir(), 'specgate-drift-'));
+    try {
+      writeFileSync(join(p, 'SPEC.md'), A_SPEC);
+      mkdirSync(join(p, 'src'), { recursive: true });
+      for (const [f, body] of Object.entries(A_SRC)) writeFileSync(join(p, f), body);
+      const rec = spawnSync(process.execPath, [join(HERE, 'spec-anchor.mjs'), 'record', join(p, 'SPEC.md')], { encoding: 'utf8' });
+      if (rec.status !== 0) return `시드 record exit=${rec.status} ${rec.stdout}${rec.stderr}`;
+      writeFileSync(join(p, 'SPEC.delta.md'), A_DELTA);
+      writeFileSync(join(p, 'src', 'a.ts'), 'export const a = 99;\n');   // 선언된 수정 → modified
+      writeFileSync(join(p, 'src', 'b.ts'), 'export const b = 99;\n');   // 미선언 수정 → stale
+      rmSync(join(p, 'src', 'c.ts'));                                    // 파일 소멸 → missing
+      const r = call(['drift', join(p, 'SPEC.md'), '--json']);
+      const j = JSON.parse(r.stdout);
+      const by = (id) => j.findings.filter((f) => f.ruleId === id);
+      const dump = JSON.stringify(j.findings.map((f) => [f.ruleId, f.msg]));
+      for (const id of ['SG1024', 'SG1025', 'SG1026'])
+        if (by(id).length !== 1) return `${id} ${by(id).length}건 ≠ 1 — ${dump}`;
+      if (by('SG1024')[0].loc.file !== 'src/c.ts') return `loc.file=${by('SG1024')[0].loc.file} (코드 파일이어야 한다)`;
+      const un = j.findings.filter((f) => f.ruleId === UNASSIGNED);
+      if (un.length) return `미배정 ${un.map((f) => f.check).join(',')}`;
+      return r.status === 1 ? null : `exit=${r.status}`;
+    } finally { rmSync(p, { recursive: true, force: true }); }
+  });
+
+  // 앵커 없이 drift = spec-anchor의 die() 경유 exit 2. verify의 fatal과 같은 자리다(--json 없음).
+  t('T19 drift 앵커 없음', () => {
+    const r = call(['drift', inline(A_SPEC)]);
+    if (!r.stderr.includes('record')) return `안내가 없다: ${r.stderr.trim()}`;
+    return r.status === 2 ? null : `exit=${r.status}`;
+  });
+
   let bad = 0;
   try {
     for (const [name, fn] of T) {
@@ -297,21 +465,24 @@ function selftest() {
 
 // ── CLI ────────────────────────────────────────────────────────────────────
 // hooks/spec-gate.mjs가 RULES를 import한다 — 이 가드가 없으면 훅의 인자를 서브커맨드로 읽는다.
-const USAGE = `usage: node framework/specgate.mjs verify <SPEC.md 경로> [--json]
+const USAGE = `usage: node framework/specgate.mjs verify <SPEC.md 경로>       [--json]
+       node framework/specgate.mjs delta  <SPEC.delta.md 경로> [--json]
+       node framework/specgate.mjs drift  <SPEC.md 경로>       [--json]
        node framework/specgate.mjs probe  <SPEC.md 경로>
        node framework/specgate.mjs --selftest`;
+const RUN = { verify, delta, drift: driftReport };
 const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(SELF);
 if (isMain) {
   const args = process.argv.slice(2);
   const [sub, ...rest] = args;
   const path = rest.find((a) => !a.startsWith('--'));
   if (sub === '--selftest' && args.length === 1) selftest();
-  else if (!['verify', 'probe'].includes(sub) || !path) {
+  else if (!(sub in RUN || sub === 'probe') || !path) {
     console.error(USAGE);
     process.exit(2);
   } else if (sub === 'probe') process.exit(probe(path));
   else {
-    const r = verify(path);
+    const r = RUN[sub](path);
     if (r.fatal) { console.error(r.fatal); process.exit(r.exit); }
     if (rest.includes('--json')) console.log(JSON.stringify(r, null, 2));
     else report(r);
