@@ -127,16 +127,20 @@ cd exp3/b2t && npx vitest run --config tests/ac/ac.vitest.config.ts 2>&1 | tail 
 node framework/verify-tdd.mjs <app-dir> <label> [out-dir]   # → <out-dir>/verify-<label>.json (기본 framework/smoke/runs)
 node framework/verify-tdd.mjs --selftest          # 음성 픽스처 4종, 기대값은 r20 §4 표와 대조
 
-# sdd 산출물(SPEC.md) 판정 보조기 (계측 — 세기만 한다. 에이전트에게 절대 주지 않는다)
-node framework/specprobe.mjs <SPEC.md 경로>   # 리터럴 4종 카운트, 판정은 육안이 이긴다 (r25 §0)
+# sdd 산출물(SPEC.md) 볼륨·리터럴 계측기 — 세기만 한다. **r49부터 도구다**: /spec 「있으면」 분기가 직접 부른다
+node framework/specprobe.mjs <SPEC.md 경로>   # 리터럴 4종 + `volume` 블록(활성 문장·[추론] 비율·표 행수·아카이브 후보)
+node framework/specprobe.mjs --selftest       # P-1~P-4. 임계는 **모른다** — 판정은 KF4 R4 몫이고 육안이 이긴다 (r25 §0)
 # sdd 산출물(SPEC.md) 정적 검사기 — specprobe와 달리 **판정을 종료 코드에 싣는다** (r36)
 node framework/spec-verify.mjs <SPEC.md 경로> [--json]   # exit 0 위반없음 / 1 위반있음 / 2 파일없음·사용법오류
-node framework/spec-verify.mjs --selftest                # r32 픽스처 6장 대조, 어긋나면 exit 1
-# 위 검사들을 SG 번호 룰 + 정적 힌트 한 줄로 재포장하는 단일 CLI (r46 — 검사는 하나도 재구현하지 않는다)
+node framework/spec-verify.mjs --selftest                # r32 픽스처 6장 + 아카이브 인라인 3건, 어긋나면 exit 1
+# 위 검사들을 SG 번호 룰 + 정적 힌트 한 줄로 재포장하는 단일 CLI (r46·r48 — 검사는 하나도 재구현하지 않는다)
 node framework/specgate.mjs verify <SPEC.md 경로> [--json]   # exit는 spec-verify를 그대로 따른다
-node framework/specgate.mjs --selftest                  # 룰 매핑 전수·mute·훅 로그 18건 대조
+node framework/specgate.mjs delta <SPEC.delta.md 경로> [--json]   # D1~D5. base는 델타 옆 SPEC.md
+node framework/specgate.mjs drift <SPEC.md 경로> [--json]    # 앵커 3범주 + A4. loc는 SPEC이 아니라 코드 파일
+node framework/specgate.mjs --selftest                  # 룰 매핑 전수·mute·훅 로그·delta·drift 22건 대조
 # 검사 5종은 전부 sdd/SKILL.md에 근거가 있다(C1 추론표기 · C2 점검표 10범주 · C3 미확정표 6열 ·
 # C4 문장 전건 지목 · C5 `선택 대기` 전건 재확인). 값어치는 집합 차인 C4·C5고 나머지는 세는 것이다.
+# `## 4. 아카이브` 절은 다섯 검사의 분모에서 빠진다(C1 계수만 원문) — 접기가 곧 C4 위반이 되지 않게 한다.
 # 골격 독립(A층)만 본다 — 헤딩 번호·절 순서는 검사하지 않는다. 문장 ID가 없는 SPEC은 위반이 아니라 경고다.
 # ⚠ C4·C5가 재는 것은 «지목의 내용»이 아니라 **«ID를 다시 적었는가»**다 — 빈 셀·«구현 안 함»도 통과한다
 # (적대 검증 확인 17건 중 ①. «파일:줄 없는 지목»은 경고로만 나온다). 알려진 한계는 r36 §9-2에 있다.

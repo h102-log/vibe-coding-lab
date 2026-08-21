@@ -54,6 +54,12 @@ Edit으로 채우는» 우회가 열려 있다는 것이다 — 아래 한계 �
 | C4 | §1·§2 문장이 완료 전 대조에서 전건 지목됐는가 | 완료 전 |
 | C5 | `선택 대기` 항목이 재확인 목록에 전건 올랐는가 | 완료 전 |
 
+`## 4. 아카이브` 절은 **다섯 검사의 분모에서 통째로 빠진다**(C1의 `[추론]` 계수만 예외 —
+접힌 SPEC에서 C1이 위양성으로 pre를 막지 않게 원문으로 센다). 안 빼면 «구현이 끝나 접는 행위»가
+곧 C4 위반이 되어 정리된 SPEC이 Stop에서 막힌다. 접힌 자리에 `선택 대기`가 섞이면 경고
+(`SG1010`)가 하나 붙는다 — 미확정은 아카이브 자격이 없다. 대가: 접힌 절은 검사기 시야 밖이라
+**ID 재사용 충돌을 기계가 못 잡는다**(«최대 번호 +1» 규약은 템플릿 주석 1줄뿐이다).
+
 값어치는 집합 차인 **C4·C5**고 나머지는 세는 것이다. C4·C5가 재는 것은 «지목의 내용»이 아니라
 **«ID를 다시 적었는가»**다 — 빈 셀·«구현 안 함»도 통과한다. 위치 표기(`파일:줄`)가 없는 지목은
 위반이 아니라 **경고**로 나온다(«실행 확인»·«부재로 충족»처럼 위치가 없어도 정당한 지목이 실물에 있다).
@@ -78,7 +84,9 @@ D2가 강제하는 것은 «구현 전 열거»라는 **행위**이지 열거의
 ```bash
 node framework/spec-verify.mjs SPEC.md          # exit 0 위반없음 / 1 위반있음 / 2 파일없음
 node framework/spec-verify.mjs SPEC.md --json
-node framework/spec-verify.mjs --selftest       # 픽스처 6장 대조
+node framework/spec-verify.mjs --selftest       # 픽스처 6장 + 아카이브 인라인 3건
+node framework/specprobe.mjs SPEC.md            # 볼륨 계측 — 센다. 판정을 종료 코드에 싣지 않는다(0 고정)
+node framework/specprobe.mjs --selftest         # 볼륨·회귀 4건
 node framework/spec-delta.mjs verify SPEC.delta.md   # D1~D5. merge로 바꾸면 손으로 병합한다
 node framework/spec-delta.mjs --selftest        # 검사 9건 + 병합 10건
 node framework/hooks/spec-gate.mjs --selftest   # 게이트 분기 23건 대조
@@ -89,13 +97,20 @@ node framework/spec-anchor.mjs drift  SPEC.md   # 앵커 대조 missing/stale/mo
 node framework/spec-anchor.mjs --selftest       # record 7건 + drift 8건
 node framework/specgate.mjs verify SPEC.md      # 위 검사들을 SG 번호 + 힌트 한 줄로. CI는 이 줄만 있으면 된다
 node framework/specgate.mjs verify SPEC.md --json    # ruleId·severity·loc·hint — 에이전트·CI 계약
-node framework/specgate.mjs --selftest          # 룰 매핑·mute·로그 18건 대조
+node framework/specgate.mjs delta SPEC.delta.md # 같은 포맷으로 D1~D5. base는 델타 옆 SPEC.md
+node framework/specgate.mjs drift SPEC.md       # 같은 포맷으로 앵커 3범주 + A4 경고
+node framework/specgate.mjs --selftest          # 룰 매핑·mute·로그 22건 대조
 ```
 
 `specgate`는 **검사를 하나도 재구현하지 않는다** — 위 도구들의 결과에 번호와 정적 힌트를 입힐
-뿐이고, 검출력은 한 건도 늘지 않는다. 번호는 `SG1001~1009`(C1~C5) · `SG1011~1015`(D1~D5) ·
-`SG1000`(SPEC 부재)이고, 훅 stderr도 같은 한 줄 포맷을 쓴다. 프로젝트 루트에 `.specgate.json`을
-두면 `{"mute":["SG1006"]}`으로 **Warning만** 끌 수 있다 — Error는 mute되지 않는다.
+뿐이고, 검출력은 한 건도 늘지 않는다. 번호는 `SG1001~1010`(C1~C5) · `SG1011~1015`(D1~D5) ·
+`SG1021~1027`(앵커 A1~A4 · 드리프트 missing/stale/modified) · `SG1000`(SPEC 부재)이고, 훅 stderr도
+같은 한 줄 포맷을 쓴다. 프로젝트 루트에 `.specgate.json`을 두면 `{"mute":["SG1006"]}`으로
+**Warning만** 끌 수 있다 — Error는 mute되지 않는다.
+
+`drift`에서만 `--json`의 `loc.file`이 SPEC이 아니라 **코드 파일**을 가리킨다 — 고칠 대상이 코드이기
+때문이다. `spec-anchor record`는 specgate에 **없다**: 이 CLI는 읽기 전용 판정만 감싸고 record는
+`SPEC.anchors.json`을 쓴다. 그래서 A1~A3(SG1021~1023)은 번호는 있어도 `spec-anchor record`로만 나온다.
 
 `spec-anchor`는 **어떤 훅에도 걸려 있지 않다** — 명시 실행 전용이고, 안 돌리면 아무것도 실증되지
 않는다. `drift`의 exit 0은 «문장이 아직 참»이 아니라 «앵커 스팬이 그대로»라는 뜻이다.
@@ -109,6 +124,10 @@ node framework/specgate.mjs --selftest          # 룰 매핑·mute·로그 18건
 - 게이트 대상 확장자는 `hooks/spec-gate.mjs`의 `SRC`에 하드코딩돼 있다. 설정으로 빼지 않았다.
 - **델타 분기는 본 SPEC 요구를 약화시키는 통로다.** 게이트는 새 기능과 수정을 구별하지 못하므로,
   새 기능을 «수정»으로 위장하면 10범주 점검표 대신 델타 1장으로 pre를 통과할 수 있다.
+- **볼륨(`specprobe`)은 아무것도 막지 않는다.** 임계값을 아는 도구가 아직 없고(판정은 KF4 R4의
+  `.specgate.json` 몫), 문장 수·표 행수는 읽기 부담의 **대리 지표**다 — 길이·밀도·난도는 재지 않는다.
+  «아카이브» 이름의 타용도 절은 오마스킹된다. `archiveCandidates`에는 근거 위치 위양성이 있다
+  (정의 줄의 «(근거: 문서:줄)»만으로 후보에 오른다) — 사람 승인이 뒤에 있어 실해는 제한적이다.
 - 자동 병합의 안전망은 «병합이 검사 위반을 늘리지 않았는가» 하나뿐이고, 그건 **검사가 보는 것만**
   지킨다 — 문장이 엉뚱한 절에 놓이는 것은 위반이 아니다. 되돌리는 수단은 git이다.
 

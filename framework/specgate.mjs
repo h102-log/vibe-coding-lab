@@ -44,6 +44,7 @@ export const RULES = {
   'C4.noId':            { id: 'SG1008', hint: 'S1·I2 형태의 문장 ID를 매기면 C4 대조가 검사된다' },
   'C5.numericId':       { id: 'SG1009', hint: '미확정 항목 ID를 U1·U2 형태로 바꾸면 재확인이 검사된다' },
   'C5.numericExcluded': { id: 'SG1009', hint: '순수 번호 ID는 판정에서 빠진다 — 검사하려면 U1 형태로 바꾼다' },
+  'C3.archivePending':  { id: 'SG1010', hint: '그 행을 §2.3 미확정표로 되돌린다 — 아카이브는 «구현·검증 완료» 보존이다' },
   // D 블록 — 훅이 델타 위반을 stderr로 내므로 여기 없으면 개정된 훅이 SG----를 뱉는다.
   // (계획서는 R3에 뒀지만 소비자가 R2에 있다. 코드가 아니라 표 5행이다.)
   D1: { id: 'SG1011', hint: '`## ADDED` `## MODIFIED` `## REMOVED` 3절을 다 둔다 — 빈 절이어도 된다' },

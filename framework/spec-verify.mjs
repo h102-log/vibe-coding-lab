@@ -52,6 +52,31 @@ export function undecidedTables(tbls) {
 // ── ID 토큰 ────────────────────────────────────────────────────────────────
 // 문장 ID = 줄 선두(표 첫 셀 / 리스트 마커 뒤)에 오는 S1 · I12 · R3 · S7a 형태.
 export const SENT_ID = /^\*{0,2}([A-Z]{1,3}\d{1,3}[a-z]?)\*{0,2}(?=[\s.):|]|$)/;
+// 줄 선두 토큰 하나. C4의 정의 탐지와 아카이브 문장 계수가 같은 규칙을 써야 한다 —
+// 갈라지면 «검사에서 뺀 문장 수»와 «접힌 문장 수»가 서로 다른 것을 세게 된다.
+const headId = (raw) => SENT_ID.exec((raw.trim().startsWith('|') ? cellsOf(raw)[0] : raw.replace(/^\s*[-*+]\s+/, '')) ?? '')?.[1] ?? null;
+
+// 아카이브 절 = 구현·검증이 끝나 접은 문장의 보존소. 검사 분모에서 뺀다 — 안 빼면 접는 행위가
+// 곧 C4 위반이 되어 Stop 게이트가 «정리된 SPEC»을 막는다(KF5 §4-3).
+// `아카이브\b`는 쓸 수 없다 — `\b`는 ASCII `\w` 기준이라 한글 뒤에서 절대 성립하지 않는다(실측).
+// 같은 뜻(«아카이브»로 끝나는 낱말)의 한글 경계는 부정 전방탐색이다.
+const ARCHIVE_H = /^##\s+(?:\d+[.)]\s*)?아카이브(?![가-힣])/;
+export function maskArchive(lines) {
+  const out = lines.slice();
+  const sentences = new Set();
+  let present = false, pendingInArchive = 0, inArchive = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (ARCHIVE_H.test(lines[i])) { inArchive = true; present = true; }
+    else if (inArchive && /^##\s/.test(lines[i])) inArchive = false;
+    if (!inArchive) continue;
+    const id = headId(lines[i]);
+    if (id) sentences.add(id);
+    pendingInArchive += lines[i].split('선택 대기').length - 1;
+    out[i] = ''; // 줄을 지우지 않고 비운다 — 줄 번호가 밀리면 모든 메시지의 위치가 어긋난다
+  }
+  return { lines: out, archive: { present, sentences: sentences.size, pendingInArchive } };
+}
+
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
 const hasToken = (text, id) => new RegExp(`(?<![A-Za-z0-9])${esc(id)}(?![0-9A-Za-z])`).test(text);
 // 지목의 «위치 표기» = `파일:줄` · `` `:12` `` · `:12-20`. C4 경고와 spec-delta의 D4가 같은 기준을 쓴다.
@@ -82,8 +107,12 @@ export const mentions = (text, ids) => {
 
 // ── 검사 ──────────────────────────────────────────────────────────────────
 export function inspect(text, spec) {
-  const lines = stripFences(text.split('\n'));
-  text = lines.join('\n'); // 이하 모든 계수는 코드펜스 밖만 본다
+  const fenced = stripFences(text.split('\n'));
+  // C1의 `[추론]` 계수만 마스킹 **전** 원문으로 센다 — 추론 문장이 전부 접힌 성숙한 SPEC에서
+  // C1이 위양성 위반으로 pre 게이트를 막지 않게 하기 위해서다(KF5 §4-3).
+  const inferMarks = fenced.join('\n').split('[추론]').length - 1;
+  const { lines, archive } = maskArchive(fenced);
+  text = lines.join('\n'); // 이하 모든 계수는 코드펜스·아카이브 절 밖만 본다
   const tbls = tables(lines);
   const V = [], W = []; // 위반 / 경고
   // kind = 룰 매핑용 안정 문자열, line = 아는 것만(1-based). specgate.mjs의 RULES가 이 kind로
@@ -92,7 +121,6 @@ export function inspect(text, spec) {
   const warn = (c, msg, kind, line = null) => W.push({ check: c, msg, kind, line });
 
   // C1 — 추론 표기 (SKILL.md:34·38). 셀 수 있는 것은 «있는가»뿐이다.
-  const inferMarks = text.split('[추론]').length - 1;
   if (inferMarks === 0) violate('C1', '`[추론]` 표기 0건 — §2가 추론 문장을 하나도 남기지 않았다', 'C1.none');
 
   // C2 — 점검표 10범주 + 상태 리터럴 (SKILL.md:40-53)
@@ -136,6 +164,11 @@ export function inspect(text, spec) {
       warn('C3', '`선택 대기`가 본문에는 있는데 미확정표의 상태 열에서는 잡히지 않았다 — 열 위치를 사람이 확인해야 한다', 'C3.pendingLost');
   }
 
+  // 접힌 자리에 미확정이 섞이면 «정해지지 않은 것»이 검사 시야 밖으로 빠진다. 인용일 수도
+  // 있으므로 차단이 아니라 경고다 — 축은 C3(미확정표 담당)이고 새 축을 만들지 않는다.
+  if (archive.pendingInArchive)
+    warn('C3', `아카이브 절에 \`선택 대기\` ${archive.pendingInArchive}건 — 미확정은 아카이브 자격이 없다`, 'C3.archivePending');
+
   // C4 — §1·§2 문장이 완료 전 대조에서 전건 지목됐는가 (SKILL.md:74-78)
   // 정의 = ID가 줄 선두에 처음 오는 곳. 지목 = **그 ID의 정의 줄보다 뒤**에서의 등장.
   // 대조 영역을 «마지막 정의 이후» 하나로 잡으면, 문장 ID처럼 생긴 토큰 하나가 파일 뒤쪽에
@@ -143,11 +176,9 @@ export function inspect(text, spec) {
   const defs = new Map();
   for (let i = 0; i < lines.length; i++) {
     if (undecidedTbls.some((t) => i >= t.start && i <= t.end)) continue; // 미확정표 행은 C5 몫
-    const raw = lines[i];
-    const head = raw.trim().startsWith('|') ? cellsOf(raw)[0] : raw.replace(/^\s*[-*+]\s+/, '');
-    const m = SENT_ID.exec(head ?? '');
+    const id = headId(lines[i]);
     // 미확정표 ID는 표 밖 산문에서 다시 선두에 와도 문장 정의가 아니다 (C5 몫)
-    if (m && !defs.has(m[1]) && !undecidedIds.has(m[1])) defs.set(m[1], i);
+    if (id && !defs.has(id) && !undecidedIds.has(id)) defs.set(id, i);
   }
   const sentIds = [...defs.keys()];
   let c4 = null;
@@ -155,7 +186,7 @@ export function inspect(text, spec) {
   else {
     const hit = new Set(sentIds.filter((id) => mentions(lines.slice(defs.get(id) + 1).join('\n'), [id]).length));
     const miss = sentIds.filter((id) => !hit.has(id));
-    c4 = { total: sentIds.length, hit: hit.size, miss };
+    c4 = { total: sentIds.length, hit: hit.size, miss, ids: sentIds };
     // 원문을 붙인다 — 문장 ID처럼 생긴 질문 라벨(`Q1 (답변 완료…)`)을 사람이 바로 가려내야 한다
     for (const id of miss)
       violate('C4', `문장 ${id}이 완료 전 대조에서 지목되지 않았다 (${spec}:${defs.get(id) + 1} «${lines[defs.get(id)].trim().slice(0, 50)}»)`, 'C4.miss', defs.get(id) + 1);
@@ -165,6 +196,10 @@ export function inspect(text, spec) {
     const located = new Set(mentions(lines.filter((l) => POS.test(l)).join('\n'), sentIds));
     const vague = [...hit].filter((id) => !located.has(id));
     c4.vague = vague;
+    // 아카이브 후보의 재료(KF5) — «파일:줄 보유 줄 어딘가에서 언급된 활성 문장». 판정 축이 아니다.
+    // 정의 줄을 제외하지 않아 «(근거: 문서:줄)»만 있는 문장도 오르는 위양성이 있다(계획서 §9-10,
+    // specprobe P-4가 그 동작을 기대값으로 고정한다). 승인이 뒤에 있어 실해는 제한적이다.
+    c4.located = [...hit].filter((id) => located.has(id));
     if (vague.length) warn('C4', `지목은 있으나 «파일:줄»이 없는 문장 ${vague.length}건: ${vague.join(', ')} (SKILL.md:77)`, 'C4.vague');
     // 앵커 대상 위치(spec-anchor용). **판정 축이 아니다** — 위반도 경고도 한 건 더하지 않는다.
     // 위치 표기가 있는 줄만 훑는다(ID×줄 전수 대조는 큰 SPEC에서 낭비다). 정의 줄과 그 앞은
@@ -211,6 +246,8 @@ export function inspect(text, spec) {
     counts: {
       inferMarks, checkRows: checkRows.length, pending: pendingIds.length,
       undecidedCols: undecidedTbls.length ? undecidedTbls.map((t) => t.cols).join('+') : null,
+      // 볼륨 재료(KF5). 헤더 포함·구분선 제외 — tables()의 rows가 이미 그렇게 모은다.
+      tableRows: tbls.reduce((n, t) => n + t.rows.length, 0), archive,
     },
     c4, c5, violations: V, warnings: W,
   };
@@ -252,6 +289,55 @@ const EXPECTED = {
   F6: { violations: 6, warnings: 1, c5miss: ['U-a', 'U-b', 'U-c', 'U-d', 'U-e', 'U-f'] },
 };
 
+// 아카이브 절은 픽스처 6장에 **없다** — 그래서 6장이 «마스킹이 새지 않는가»의 회귀가 되고,
+// 새 동작은 인라인으로 밟는다(파일 신설 금지 — 개발 규칙 4, framework/smoke/는 읽기 전용이다).
+export const KA = `## 1. 명시된 것
+- S1. 증가 버튼을 누르면 카운터가 1 증가한다. (근거: 요청 문장)
+- S2. 카운터 초기값은 0이다. (근거: 요청 문장)
+### 2.2 추론으로 확정한 문장
+- I1. 카운터는 음수가 되지 않는다. [추론]
+### 2.3 미확정 항목
+| # | 침묵 지점 | 적용한 기본값 | 대안 | 상태 | 번복 조건 |
+| --- | --- | --- | --- | --- | --- |
+| U1 | 카운터 상한 | 없음 | 99 고정 | 선택 대기 | 오버플로 관측 시 |
+## 3. 완료 전 대조
+| 문장 | 코드 위치 |
+| --- | --- |
+| S1 | src/counter.ts:10 |
+| S2 | src/counter.ts:3 |
+| I1 | 실행 확인 |
+- U1. 카운터 상한 — 기본값 «없음»으로 진행 중. 확정 필요.
+## 4. 아카이브
+| ID | 문장(원문 그대로) | 최종 지목 | 접은 날짜 | 근거 |
+| --- | --- | --- | --- | --- |
+| S0 | 카운터가 화면에 렌더된다. | src/app.ts:12 | 2026-08-20 | verify 0위반 · 사용자 승인 |
+`;
+export const KA_PEND = KA.replace('verify 0위반 · 사용자 승인', '선택 대기');
+const KA_NOHEAD = KA.split('\n').filter((l) => l !== '## 4. 아카이브').join('\n');
+const kinds = (r) => [...r.violations, ...r.warnings].map((f) => f.kind).join(',');
+
+const CASES = [
+  ['V-A1 아카이브 제외', () => {
+    const r = inspect(KA, 'KA');
+    if (r.violations.length !== 1 || r.warnings.length !== 1) return `위반 ${r.violations.length}/1 · 경고 ${r.warnings.length}/1 — ${kinds(r)}`;
+    if (r.c4.total !== 3) return `c4.total ${r.c4.total} ≠ 3 — S0이 안 빠졌다 (${r.c4.ids})`;
+    const a = r.counts.archive;
+    return a.present && a.sentences === 1 && a.pendingInArchive === 0 ? null : `archive ${JSON.stringify(a)}`;
+  }],
+  ['V-A2 접힌 선택 대기', () => {
+    const r = inspect(KA_PEND, 'KA');
+    if (r.violations.length !== 1 || r.warnings.length !== 2) return `위반 ${r.violations.length}/1 · 경고 ${r.warnings.length}/2 — ${kinds(r)}`;
+    return r.warnings.some((w) => w.kind === 'C3.archivePending') ? null : `C3.archivePending 없음 — ${kinds(r)}`;
+  }],
+  // 이 케이스만 «마스킹이 없으면 판정이 달라진다»를 본다. 없으면 마스킹이 통째로 죽어 있어도 통과한다.
+  ['V-A3 마스킹 차분', () => {
+    const r = inspect(KA_NOHEAD, 'KA');
+    if (r.counts.archive.present) return '헤딩을 지웠는데 present=true';
+    if (r.violations.length !== 2) return `위반 ${r.violations.length} ≠ 2 — ${kinds(r)}`;
+    return r.c4.miss.includes('S0') ? null : `C4 미지목에 S0이 없다 — miss=${r.c4.miss}`;
+  }],
+];
+
 function selftest() {
   let bad = 0;
   for (const [f, exp] of Object.entries(EXPECTED)) {
@@ -263,7 +349,13 @@ function selftest() {
     console.log(`${ok ? 'ok  ' : 'FAIL'} ${f} — 위반 ${got.violations}/${exp.violations} · 경고 ${got.warnings}/${exp.warnings} · C5 미제시 ${JSON.stringify(got.c5miss)}`);
     if (!ok) console.log(`       기대 C5 미제시 ${JSON.stringify(exp.c5miss)}`);
   }
-  console.log(bad ? `selftest 실패 — ${bad}장 어긋남` : 'selftest 통과 — 6장 전건 일치');
+  for (const [name, fn] of CASES) {
+    let why;
+    try { why = fn(); } catch (e) { why = `예외: ${e.message}`; }
+    if (why) bad++;
+    console.log(`${why ? 'FAIL' : 'ok  '} ${name.padEnd(16)} ${why ?? ''}`);
+  }
+  console.log(bad ? `selftest 실패 — ${bad}건 어긋남` : `selftest 통과 — 픽스처 6장 + 인라인 ${CASES.length}건`);
   process.exit(bad ? 1 : 0);
 }
 
