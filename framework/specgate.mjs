@@ -19,6 +19,7 @@ import { inspect } from './spec-verify.mjs';
 import { inspectDelta } from './spec-delta.mjs';
 import { drift as anchorDrift } from './spec-anchor.mjs';
 import { probe as probeVolume } from './specprobe.mjs';
+import { loadEval, inspectEval } from './eval-verify.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SELF = fileURLToPath(import.meta.url);
@@ -65,6 +66,29 @@ export const RULES = {
   'drift.stale':    { id: 'SG1025', hint: '스팬이 갈라졌다 — 그 문장이 아직 참인지 다시 읽고, 참이면 `spec-anchor record`로 갱신한다' },
   'drift.modified': { id: 'SG1026', hint: '델타가 선언한 수정이다 — `spec-anchor record`를 다시 돌려 앵커만 갱신한다' },
   A4: { id: 'SG1027', hint: '앵커가 현행 SPEC과 어긋난다 — `spec-anchor record`를 다시 돌린다' },
+  // E 블록 — eval-verify(planedd4). 근거는 framework/eval-template.md와 EDD 설계 계약이다.
+  'E1.noTable':   { id: 'SG1041', hint: 'eval-template.md의 표(ID·근거·근거 해시·무엇을 어떻게 재나·테스트·승인)로 EVAL.md를 만든다' },
+  'E1.badCols':   { id: 'SG1041', hint: '헤더에 빠진 필수 열을 채운다' },
+  'E1.dupId':     { id: 'SG1041', hint: 'EV ID를 유일하게 다시 매긴다 — 최대 번호 +1로 잇는다' },
+  'E1.badId':     { id: 'SG1041', hint: 'ID를 EV1·EV2 형태로 맞춘다' },
+  'E1.badHash':   { id: 'SG1041', hint: '근거 해시를 8자리 소문자 hex로 적는다 — /eval 승인 절차가 계산해 준다' },
+  'E2.noTest':    { id: 'SG1042', hint: '항목의 테스트를 tests/eval/ 아래 경로로 적는다' },
+  'E2.noMethod':  { id: 'SG1042', hint: '«무엇을 어떻게 재나»를 한 줄로 채운다 — 비면 그 항목은 재는 게 없다' },
+  'E3.miss':      { id: 'SG1043', hint: '근거를 SPEC에 실존하는 문장 ID로 고치거나, 문장을 SPEC에 먼저 올린다' },
+  'E3.noSpec':    { id: 'SG1043', hint: 'SPEC.md가 없다 — 근거 실존·U·해시는 판정되지 않았다(통과가 아니다)' },
+  'E3.archived':  { id: 'SG1043', hint: '아카이브 문장 지목이다 — 문장을 §1로 되살리거나 항목을 기각한다' },
+  'E4.undecided': { id: 'SG1044', hint: '`선택 대기` 문장은 단언 자격이 없다 — 사용자 확정으로 S/I 문장이 된 뒤에 평가를 건다' },
+  'E4.settledU':  { id: 'SG1044', hint: '확정된 미확정 항목 지목이다 — 문장을 §1·§2로 승격하고 그 ID를 지목한다' },
+  'E5.outdated':  { id: 'SG1045', hint: '근거 문장이 바뀌었다 — 항목을 다시 보고 `## 개정`에 새 해시·사유·날짜를 적는다' },
+  'E6.red':       { id: 'SG1046', hint: '빨간 항목이 남았다 — 통과시키거나 `## 기각`에 EV#와 사유를 적는다' },
+  'E6.missing':   { id: 'SG1046', hint: '스냅샷에 그 EV가 없다 — 테스트 이름에 `EV#:` 접두를 달고 러너를 다시 돌린다' },
+  'E6.rejectedGreen': { id: 'SG1046', hint: '기각한 항목이 통과했다 — 기각 사유가 아직 참인지 본다' },
+  'E7.frozen':    { id: 'SG1047', hint: '동결 후 수정이다 — `## 개정`에 사유를 남기거나 수정을 되돌린다(단은 .specgate.json evalFreeze)' },
+  'E7.noLock':    { id: 'SG1047', hint: '락이 없다 — /eval 승인으로 .specgate-eval.lock을 만든 뒤 구현한다' },
+  'snapshot.missing': { id: 'SG1048', hint: '스냅샷이 없다 — eval-run으로 red-check(구현 전)·final(완료 전)을 돌린다' },
+  'snapshot.invalid': { id: 'SG1048', hint: '스냅샷이 무효다(runOk·phase·승인본 불일치) — 계측 실패는 통과가 아니다. 러너를 고쳐 다시 돌린다' },
+  'snapshot.stale':   { id: 'SG1049', hint: '스냅샷 이후 구현이 바뀌었다 — final 러너를 다시 돌린다' },
+  'coverage.uncovered': { id: 'SG1050', hint: '평가로 덮이지 않은 S 문장 집계다 — 차단하지 않는다. 평가 가능한 문장이면 항목을 더한다' },
   // V 블록 — 볼륨(KF5 §4-4 값 계약, 배선은 R4). verify가 specprobe.probe()를 읽어 직접 만든다 —
   // 검사기 소스에 없는 kind라 T3b 밖이고, T20~T23이 런타임으로 밟는다. **Warning 전용·차단 승격
   // 금지**(조사 Q4 — 최적 분량 미정량. 모르는 값을 도구가 강제하지 않는다).
@@ -214,6 +238,15 @@ export function driftReport(specPath) {
         'Error', a.file));
   findings.push(...r.warnings.map((w) => mk(w, 'Warning', target)));
   return pack('drift', target, findings, dirname(resolve(specPath)));
+}
+
+// eval — eval-verify 랩(planedd4). 검사를 재구현하지 않는다 — loadEval이 EVAL.md 옆 파일들을
+// 읽어 opts를 채우고 inspectEval이 판정한다. exit는 eval-verify를 그대로 따른다(패스스루 원칙).
+export function evalCmd(evalPath, phase) {
+  const io = loadEval(evalPath, phase);                       // {fatal, exit:2} | {evalText, options}
+  if (io.fatal) return { fatal: io.fatal, exit: 2 };
+  const target = slash(evalPath);
+  return pack('eval', target, fromInspect(inspectEval(io.evalText, io.options), target), dirname(resolve(evalPath)));
 }
 
 function report(r) {
@@ -380,6 +413,8 @@ function selftest() {
     for (const m of ds.matchAll(/(?:violate|warn)\('(D\d)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
     const as = readFileSync(join(HERE, 'spec-anchor.mjs'), 'utf8');
     for (const m of as.matchAll(/check: '(A\d)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
+    const es = readFileSync(join(HERE, 'eval-verify.mjs'), 'utf8');
+    for (const m of es.matchAll(/'((?:E\d|snapshot|coverage)\.\w+)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
     return miss.length ? `RULES 미등재: ${[...new Set(miss)].join(', ')}` : null;
   });
 
@@ -566,6 +601,41 @@ function selftest() {
     return r.status === 0 ? null : `exit=${r.status}`;
   });
 
+  // ── R2(EDD) — eval 서브커맨드 (planedd4 §3-6 ④, T16 동형 패스스루) ──────
+  t('T24 eval E1.dupId 매핑', () => {
+    const p = mkdtempSync(join(tmpdir(), 'specgate-eval-'));
+    try {
+      const ev = join(p, 'EVAL.md');
+      writeFileSync(ev, `# EVAL — dup
+
+## 1. 평가 항목
+
+| ID | 근거 | 근거 해시 | 무엇을 어떻게 재나 | 테스트 | 승인 |
+| --- | --- | --- | --- | --- | --- |
+| EV1 | S1 | | 초기 렌더 → 버튼이 렌더된다 | tests/eval/x.test.ts | |
+| EV1 | S1 | | 클릭 1회 → 호출 1회 | tests/eval/x.test.ts | |
+
+## 기각
+
+| EV# | 사유 |
+| --- | --- |
+
+## 개정
+
+| EV# | 새 해시 | 사유 | 날짜 |
+| --- | --- | --- | --- |
+`);
+      const r = call(['eval', ev, '--json']);
+      const j = JSON.parse(r.stdout);
+      if (!j.findings.some((f) => f.ruleId === 'SG1041' && f.severity === 'Error'))
+        return `SG1041 Error가 없다 (${j.findings.map((f) => f.ruleId).join(',')})`;
+      const un = j.findings.filter((f) => f.ruleId === UNASSIGNED);
+      if (un.length) return `미배정 ${un.map((f) => f.kind).join(',')}`;
+      const direct = spawnSync(process.execPath, [join(HERE, 'eval-verify.mjs'), ev], { encoding: 'utf8' }).status;
+      return r.status === direct ? null : `exit ${r.status} ≠ eval-verify ${direct}`;
+    } finally { rmSync(p, { recursive: true, force: true }); }
+  });
+
   let bad = 0;
   try {
     for (const [name, fn] of T) {
@@ -584,6 +654,7 @@ function selftest() {
 const USAGE = `usage: node framework/specgate.mjs verify <SPEC.md 경로>       [--json]
        node framework/specgate.mjs delta  <SPEC.delta.md 경로> [--json]
        node framework/specgate.mjs drift  <SPEC.md 경로>       [--json]
+       node framework/specgate.mjs eval   <EVAL.md 경로>       [--pre|--stop] [--json]
        node framework/specgate.mjs probe  <SPEC.md 경로>
        node framework/specgate.mjs --selftest`;
 const RUN = { verify, delta, drift: driftReport };
@@ -593,11 +664,18 @@ if (isMain) {
   const [sub, ...rest] = args;
   const path = rest.find((a) => !a.startsWith('--'));
   if (sub === '--selftest' && args.length === 1) selftest();
-  else if (!(sub in RUN || sub === 'probe') || !path) {
+  else if (!(sub in RUN || sub === 'probe' || sub === 'eval') || !path) {
     console.error(USAGE);
     process.exit(2);
   } else if (sub === 'probe') process.exit(probe(path));
-  else {
+  else if (sub === 'eval') {
+    const phase = rest.includes('--stop') ? 'stop' : rest.includes('--pre') ? 'pre' : 'lint';
+    const r = evalCmd(path, phase);
+    if (r.fatal) { console.error(r.fatal); process.exit(r.exit); }
+    if (rest.includes('--json')) console.log(JSON.stringify(r, null, 2));
+    else report(r);
+    process.exit(r.exit);
+  } else {
     const r = RUN[sub](path);
     if (r.fatal) { console.error(r.fatal); process.exit(r.exit); }
     if (rest.includes('--json')) console.log(JSON.stringify(r, null, 2));
