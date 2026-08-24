@@ -1,0 +1,67 @@
+{
+  "phase": "final",
+  "at": "2026-08-24T15:31:09.018Z",
+  "runOk": true,
+  "runner": "vitest",
+  "items": [
+    {
+      "id": "EV1",
+      "status": "green"
+    },
+    {
+      "id": "EV2",
+      "status": "green"
+    },
+    {
+      "id": "EV3",
+      "status": "green"
+    },
+    {
+      "id": "EV4",
+      "status": "green"
+    },
+    {
+      "id": "EV5",
+      "status": "green"
+    },
+    {
+      "id": "EV6",
+      "status": "green"
+    },
+    {
+      "id": "EV7",
+      "status": "green"
+    },
+    {
+      "id": "EV8",
+      "status": "green"
+    },
+    {
+      "id": "EV9",
+      "status": "green"
+    },
+    {
+      "id": "EV10",
+      "status": "green"
+    },
+    {
+      "id": "EV11",
+      "status": "green"
+    },
+    {
+      "id": "EV12",
+      "status": "green"
+    }
+  ],
+  "evalLockHash": "9ac5deeb",
+  "implHash": {
+    "src/App.tsx": "54bebb9a",
+    "src/CartList.tsx": "d7fcb5e0",
+    "src/main.tsx": "718770f0",
+    "tests/eval/app.test.tsx": "32ac0c71",
+    "tests/eval/cart-list.test.tsx": "191b3f8f",
+    "vite.config.ts": "588bb0d8",
+    "vitest.config.ts": "9489f4ae"
+  },
+  "redAt": "2026-08-24T15:29:58.572Z"
+}

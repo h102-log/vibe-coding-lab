@@ -1,0 +1,1 @@
+Create src/cart.ts exporting function addItem(). Do nothing else.

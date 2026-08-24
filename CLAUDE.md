@@ -91,7 +91,7 @@ Mode 3 RETIRED로 폐기; 반면 r33의 18세션 재판정·r28~r33의 3렌즈 �
 
 ## 하네스(Claude Code 커스터마이제이션)
 
-이 리포에 등록된 것은 `.claude/skills/thought-dump/` 하나와 `.claude/settings.local.json`의 permissions 2줄뿐이다. 프로젝트 훅·서브에이전트·커맨드는 **없다** — 프레임워크 v0.1은 착수됐지만(`framework/` — tdd 스킬·스모크·verify 계측), 처치는 런에 `--append-system-prompt`로만 들어가고 계측은 실험자가 밖에서 돌리므로 하네스에 등록할 것이 없다.
+이 리포에 등록된 것은 `.claude/skills/thought-dump/` 하나와 `.claude/settings.local.json`의 permissions 2줄뿐이다. 프로젝트 훅·서브에이전트·커맨드는 **없다** — 프레임워크는 진척됐지만(`framework/` — sdd·tdd·edd 스킬 · `/spec`·`/eval` 커맨드 · spec-gate·eval-gate 훅 · 검사기·러너·계측), 그것들은 플러그인 `specgate`의 **설치 자산**이지 이 리포 자신의 하네스가 아니다. 처치는 런에 `--append-system-prompt` 또는 리포 밖 스크래치의 settings.json·플러그인 설치로 들어가고, 계측은 실험자가 밖에서 돌린다.
 
 > 이 문단은 **도구 트랙에서 바뀐다.** 게이트 배선(`PreToolUse` 훅)은 «실험자 세션에 등록하는 것»이 아니라
 > «도구가 대상 프로젝트에 설치하는 것»이므로, 만들어지면 `framework/`의 설치 자산으로 들어가고 이 리포
@@ -144,6 +144,10 @@ node framework/specgate.mjs --selftest                  # 룰 매핑 전수·mut
 # 골격 독립(A층)만 본다 — 헤딩 번호·절 순서는 검사하지 않는다. 문장 ID가 없는 SPEC은 위반이 아니라 경고다.
 # ⚠ C4·C5가 재는 것은 «지목의 내용»이 아니라 **«ID를 다시 적었는가»**다 — 빈 셀·«구현 안 함»도 통과한다
 # (적대 검증 확인 17건 중 ①. «파일:줄 없는 지목»은 경고로만 나온다). 알려진 한계는 r36 §9-2에 있다.
+# edd 산출물(EVAL.md) 검사·러너·게이트 3종 (r54~r57 신설, 스모크 r58)
+node framework/eval-verify.mjs <EVAL.md 경로> [--json]   # E1~E7 정적 검사 — exit 0 위반없음 / 1 위반있음 / 2 파일없음
+node framework/eval-run.mjs <app-dir> --phase red|final  # 평가 실행 → .specgate-eval.json 스냅샷 — exit 0 = 스냅샷 산출(빨간불이어도 0, 판정을 exit에 싣지 않는다). --lock은 /eval 승인이 부른다
+node framework/hooks/eval-gate.mjs --selftest            # 게이트 분기 22건 — pre: 락·red 스냅샷·E1~E5 / stop: final·신선도·E6·E7, exit 0 통과 / 2 차단
 # sdd 판정 정의·재판정 루브릭 v2.1 = framework/rubric-sdd.md (r22 §5-2 → r30 부록 A → r32 개정, r33 검증: 합성 픽스처 6장×3세션 · r35 검증: 실물 SPEC 1장×3세션 — 둘 다 전건 재현. 판정은 육안, 인용 필수 — 판정자에게는 A-0~A-5 본문만 준다)
 # 재판정 프롬프트는 부록 B-3의 4줄 + 5행 «셸 명령을 쓰지 마라. 파일을 읽고 세라.» — 이 줄이 없으면 판정자가 계수를 셸로 하려다 Bash 거부로 무효가 된다(r33 무효 2건 → r35 0건)
 ```

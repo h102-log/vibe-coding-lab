@@ -1,0 +1,14 @@
+{
+  "phase": "red",
+  "at": "2026-08-24T00:00:00Z",
+  "runOk": true,
+  "runner": "vitest",
+  "items": [
+    {
+      "id": "EV1",
+      "status": "red"
+    }
+  ],
+  "evalLockHash": "06c88b02",
+  "implHash": {}
+}
