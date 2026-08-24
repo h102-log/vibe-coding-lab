@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // specgate — 검사기들의 위반을 SG 번호 룰 + 정적 힌트로 재포장하는 단일 CLI.
 // **검사를 하나도 재구현하지 않는다** — 기존 export를 부르고 번호·포맷만 입힌다(KF4).
-//   node framework/specgate.mjs verify <SPEC.md 경로>       [--json]   # spec-verify.inspect() 랩 — C1~C5
+//   node framework/specgate.mjs verify <SPEC.md 경로>       [--json]   # spec-verify.inspect() 랩 — C1~C5 + 볼륨 SG1031~1034(Warning)
 //   node framework/specgate.mjs delta  <SPEC.delta.md 경로> [--json]   # spec-delta.inspectDelta() 랩 — D1~D5
 //   node framework/specgate.mjs drift  <SPEC.md 경로>       [--json]   # spec-anchor.drift() 랩 — 3범주 + A4
 //   node framework/specgate.mjs probe  <SPEC.md 경로>                  # specprobe 패스스루 — 판정 없음
@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { inspect } from './spec-verify.mjs';
 import { inspectDelta } from './spec-delta.mjs';
 import { drift as anchorDrift } from './spec-anchor.mjs';
+import { probe as probeVolume } from './specprobe.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SELF = fileURLToPath(import.meta.url);
@@ -64,6 +65,13 @@ export const RULES = {
   'drift.stale':    { id: 'SG1025', hint: '스팬이 갈라졌다 — 그 문장이 아직 참인지 다시 읽고, 참이면 `spec-anchor record`로 갱신한다' },
   'drift.modified': { id: 'SG1026', hint: '델타가 선언한 수정이다 — `spec-anchor record`를 다시 돌려 앵커만 갱신한다' },
   A4: { id: 'SG1027', hint: '앵커가 현행 SPEC과 어긋난다 — `spec-anchor record`를 다시 돌린다' },
+  // V 블록 — 볼륨(KF5 §4-4 값 계약, 배선은 R4). verify가 specprobe.probe()를 읽어 직접 만든다 —
+  // 검사기 소스에 없는 kind라 T3b 밖이고, T20~T23이 런타임으로 밟는다. **Warning 전용·차단 승격
+  // 금지**(조사 Q4 — 최적 분량 미정량. 모르는 값을 도구가 강제하지 않는다).
+  'volume.activeSentences':   { id: 'SG1031', hint: '활성 본문이 리뷰 예산을 넘고 있다 — 아카이브 후보를 보라' },
+  'volume.inferenceRatio':    { id: 'SG1032', hint: '확정 문장에서 추론의 비중이 임계를 넘었다 — §2 확정 절차로 되돌려라' },
+  'volume.tableRows':         { id: 'SG1033', hint: '표가 본문을 삼키고 있다 — 대조표·미확정표 정리 시점이다' },
+  'volume.archiveCandidates': { id: 'SG1034', hint: '접기는 제안 + 사용자 승인으로만 한다 — `선택 대기` 행은 후보가 아니다' },
 };
 
 // 룰이 없는 kind를 조용히 숨기지 않는다 — 눈에 띄어야 표에 등재된다.
@@ -83,16 +91,30 @@ const mk = (f, severity, file) => {
 };
 
 // ── .specgate.json ─────────────────────────────────────────────────────────
-// 대상 프로젝트 루트 = SPEC.md가 있는 디렉터리. `interview`(KF2)·`volume`(KF5)은 예약 키고
-// 이 라운드는 읽지 않는다. 깨진 설정이 판정을 뒤집지 않는다 — mute만 죽고 검사는 그대로 간다.
+// 대상 프로젝트 루트 = SPEC.md가 있는 디렉터리. `volume`(KF5 임계)은 verify가 읽고(R4),
+// `interview`(KF2 mute)는 spec-interview.mjs가 읽는다 — 이 CLI의 소비는 mute·volume 둘이다.
+// 깨진 설정이 판정을 뒤집지 않는다 — mute만 죽고 검사는 그대로 간다.
+// 임계 기본값은 임의의 시작점이다(KF5 §4-1 — 양끝 반증뿐, 사이 최적점은 실사용 관측 대상).
+// `activeSentences`는 S+I+U 합(total)의 임계다.
+export const VOLUME_LIMITS = { activeSentences: 40, inferenceRatio: 0.5, tableRows: 80 };
 function loadConfig(dir) {
   const p = join(dir, '.specgate.json');
-  if (!existsSync(p)) return { mute: [], notes: [] };
+  const base = { mute: [], volume: { ...VOLUME_LIMITS }, notes: [] };
+  if (!existsSync(p)) return base;
   try {
     const j = JSON.parse(readFileSync(p, 'utf8'));
-    return { mute: Array.isArray(j.mute) ? j.mute : [], notes: [] };
+    if (Array.isArray(j.mute)) base.mute = j.mute;
+    // 아는 키 3종만 읽는다. 숫자가 아니면 기본값 유지 + 통지 — 임계가 조용히 바뀌는 것도,
+    // 깨진 값이 조용히 무시되는 것도 안 된다.
+    if (j.volume && typeof j.volume === 'object')
+      for (const k of Object.keys(VOLUME_LIMITS)) {
+        if (!(k in j.volume)) continue;
+        if (Number.isFinite(j.volume[k])) base.volume[k] = j.volume[k];
+        else base.notes.push(`구성 무시: volume.${k}는 숫자가 아니다 — 기본값 ${VOLUME_LIMITS[k]}`);
+      }
+    return base;
   } catch {
-    return { mute: [], notes: ['구성 무시: .specgate.json 파싱 실패 — mute를 적용하지 않았다'] };
+    return { ...base, notes: ['구성 무시: .specgate.json 파싱 실패 — mute를 적용하지 않았다'] };
   }
 }
 
@@ -118,8 +140,7 @@ const fromInspect = (r, file) => [
   ...r.warnings.map((f) => mk(f, 'Warning', file)),
 ];
 
-function pack(subcommand, target, findings, dir) {
-  const cfg = loadConfig(dir);
+function pack(subcommand, target, findings, dir, cfg = loadConfig(dir)) {
   const { kept, muted, notes } = applyMute(findings, cfg.mute);
   const counts = {
     error: kept.filter((f) => f.severity === 'Error').length,
@@ -131,12 +152,36 @@ function pack(subcommand, target, findings, dir) {
   };
 }
 
+// 볼륨 경고(V 블록) — verify에서만 만든다. probe 서브커맨드는 패스스루 그대로다(T10):
+// specprobe 자신은 끝까지 임계를 모르고, 판정은 이 CLI 층의 몫이다(KF4 §5 R4).
+function volumeFindings(v, lim, file) {
+  const out = [];
+  const add = (kind, msg) => out.push(mk({ check: kind, msg }, 'Warning', file));
+  const a = v.activeSentences; // ID 없는 SPEC은 null — C4 «판정 불가»와 같은 결이라 경고도 없다
+  if (a && a.total > lim.activeSentences)
+    add('volume.activeSentences', `활성 문장 ${a.total}건 > ${lim.activeSentences} (S ${a.S} · I ${a.I} · U ${a.U})`);
+  if (v.inferenceRatio !== null && v.inferenceRatio > lim.inferenceRatio)
+    add('volume.inferenceRatio', `[추론] 비율 ${v.inferenceRatio} > ${lim.inferenceRatio}`);
+  if (v.tableRows > lim.tableRows)
+    add('volume.tableRows', `표 ${v.tableRows}행 > ${lim.tableRows}`);
+  // SG1031이 발동 중일 때만 — 후보가 있어도 본문이 예산 안이면 접기를 재촉하지 않는다(KF5 §4-4).
+  if (a && a.total > lim.activeSentences && v.archiveCandidates.count >= 1)
+    add('volume.archiveCandidates', `아카이브 후보 ${v.archiveCandidates.count}건 — 접기 제안`);
+  return out;
+}
+
 export function verify(specPath) {
   let text;
   try { text = readFileSync(specPath, 'utf8'); }
   catch (e) { return { fatal: `파싱 실패: ${e.message}`, exit: 2 }; }
   const target = slash(specPath);
-  return pack('verify', target, fromInspect(inspect(text, target), target), dirname(resolve(specPath)));
+  const dir = dirname(resolve(specPath));
+  const cfg = loadConfig(dir);
+  const findings = fromInspect(inspect(text, target), target);
+  // probe()는 내부에서 inspect()를 다시 부른다 — 중복 1회를 감수하고 KF5 §4-4의 값 계약을
+  // 그대로 쓴다(«verify가 probe()를 읽어 발행»). 파생 로직을 여기 복제하는 쪽이 더 비싸다.
+  findings.push(...volumeFindings(probeVolume(text, target).volume, cfg.volume, target));
+  return pack('verify', target, findings, dir, cfg);
 }
 
 // base 탐색은 spec-delta.mjs의 load()와 같은 규칙이다(델타 옆 SPEC.md, 없으면 콜드스타트).
@@ -267,6 +312,38 @@ const A_DELTA = `# DELTA — 더하기를 고친다
 | S1 | src/a.ts:1 |
 `;
 const A_SRC = { 'src/a.ts': 'export const a = 1;\n', 'src/b.ts': 'export const b = 2;\n', 'src/c.ts': 'export const c = 3;\n' };
+
+// R4 볼륨 케이스 재료 — spec-verify 위반·경고 0(점검표 10범주 + 전건 «파일:줄» 지목 + 재확인)이라
+// exit 0 위에서 Warning만 관측된다. 실측값: total 4(S2·I1·U1) · ratio 0.333 · tableRows 17 · 후보 3.
+// 픽스처 6장은 기본 임계에 전부 미달(최대 total 18·rows 54·ratio 0)이라 T1~T3a 대조가 안 흔들린다.
+const CATS10 = Array.from({ length: 10 }, (_, i) => `| ${i + 1}. 범주${i + 1} | Clear |`).join('\n');
+const VOL = `# SPEC — vol
+
+## 1. 명시된 것
+- S1. 증가 버튼을 누르면 카운터가 1 증가한다. (근거: 요청 문장)
+- S2. 카운터 초기값은 0이다. (근거: 요청 문장)
+
+## 2. 점검표
+| 범주 | 상태 |
+| --- | --- |
+${CATS10}
+
+### 2.2 추론으로 확정한 문장
+- I1. 카운터는 음수가 되지 않는다. [추론]
+
+### 2.3 미확정 항목
+| # | 침묵 지점 | 적용한 기본값 | 대안 | 상태 | 번복 조건 |
+| --- | --- | --- | --- | --- | --- |
+| U1 | 카운터 상한 | 없음 | 99 고정 | 선택 대기 | 오버플로 관측 시 |
+
+## 3. 완료 전 대조
+| 문장 | 코드 위치 |
+| --- | --- |
+| S1 | src/counter.ts:10 |
+| S2 | src/counter.ts:3 |
+| I1 | src/counter.ts:7 |
+- U1. 카운터 상한 — 기본값 «없음»으로 진행 중. 확정 필요.
+`;
 
 function selftest() {
   const proj = mkdtempSync(join(tmpdir(), 'specgate-'));
@@ -449,6 +526,44 @@ function selftest() {
     const r = call(['drift', inline(A_SPEC)]);
     if (!r.stderr.includes('record')) return `안내가 없다: ${r.stderr.trim()}`;
     return r.status === 2 ? null : `exit=${r.status}`;
+  });
+
+  // ── R4 — 볼륨 임계(V 블록) ──────────────────────────────────────────────
+  const cfgAt = (json) => writeFileSync(join(proj, '.specgate.json'), json);
+
+  t('T20 볼륨 초과 + 접기 제안', () => {
+    inline(VOL); cfgAt('{"volume":{"activeSentences":3}}');
+    const r = call(['verify', spec, '--json']);
+    const j = JSON.parse(r.stdout);
+    const ids = j.findings.map((f) => f.ruleId);
+    if (!ids.includes('SG1031')) return `SG1031이 없다 (${ids})`;
+    if (!ids.includes('SG1034')) return `SG1034가 없다 (${ids})`;
+    if (ids.includes('SG1032') || ids.includes('SG1033')) return `안 넘은 축이 발동 (${ids})`;
+    if (j.findings.some((f) => f.ruleId.startsWith('SG103') && f.severity !== 'Warning')) return 'V 블록에 Error가 섞였다';
+    return r.status === 0 ? null : `exit=${r.status} (Warning은 판정이 아니다)`;
+  });
+
+  t('T21 기본 임계 미달', () => {
+    const r = call(['verify', inline(VOL), '--json']);
+    const j = JSON.parse(r.stdout);
+    if (j.findings.length) return `finding ${j.findings.map((f) => f.ruleId).join(',')} (기대 0)`;
+    return r.status === 0 ? null : `exit=${r.status}`;
+  });
+
+  t('T22 비율·표행 임계 + SG1034 조건', () => {
+    inline(VOL); cfgAt('{"volume":{"inferenceRatio":0.2,"tableRows":10}}');
+    const j = JSON.parse(call(['verify', spec, '--json']).stdout);
+    const ids = j.findings.map((f) => f.ruleId).sort();
+    // 후보 3건이 있어도 SG1031이 없으면 SG1034는 안 뜬다 — 정확 목록 대조가 그 조건부까지 잡는다.
+    return JSON.stringify(ids) === '["SG1032","SG1033"]' ? null : `${JSON.stringify(ids)} ≠ [SG1032,SG1033]`;
+  });
+
+  t('T23 볼륨 설정 깨짐', () => {
+    inline(VOL); cfgAt('{"volume":{"activeSentences":"three"}}');
+    const r = call(['verify', spec]);
+    if (!r.stdout.includes('구성 무시: volume.activeSentences')) return '통지가 없다';
+    if (r.stdout.includes('SG1031')) return '기본값이 아니라 깨진 값으로 판정했다';
+    return r.status === 0 ? null : `exit=${r.status}`;
   });
 
   let bad = 0;

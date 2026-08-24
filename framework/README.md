@@ -97,8 +97,8 @@ node framework/specprobe.mjs --selftest         # 볼륨·회귀 4건
 node framework/spec-delta.mjs verify SPEC.delta.md   # D1~D5. merge로 바꾸면 손으로 병합한다
 node framework/spec-delta.mjs --selftest        # 검사 9건 + 병합 10건
 node framework/hooks/spec-gate.mjs --selftest   # 게이트 분기 23건 대조
-node framework/spec-interview.mjs stats         # 침묵 인터뷰 3택 집계 — 기록은 /spec 문안이 한다
-node framework/spec-interview.mjs --selftest    # 기록·집계 12건 대조
+node framework/spec-interview.mjs stats         # 침묵 인터뷰 3택 집계 + 저장 mute(`interview.mute`) 보고 — 기록은 /spec 문안이 한다
+node framework/spec-interview.mjs --selftest    # 기록·집계·저장 mute 15건 대조
 node framework/spec-anchor.mjs record SPEC.md   # §3 지목의 실존·줄 범위 확인 → SPEC.anchors.json
 node framework/spec-anchor.mjs drift  SPEC.md   # 앵커 대조 missing/stale/modified. exit 1 = 다시 읽을 문장이 있다
 node framework/spec-anchor.mjs --selftest       # record 7건 + drift 8건
@@ -106,14 +106,19 @@ node framework/specgate.mjs verify SPEC.md      # 위 검사들을 SG 번호 + �
 node framework/specgate.mjs verify SPEC.md --json    # ruleId·severity·loc·hint — 에이전트·CI 계약
 node framework/specgate.mjs delta SPEC.delta.md # 같은 포맷으로 D1~D5. base는 델타 옆 SPEC.md
 node framework/specgate.mjs drift SPEC.md       # 같은 포맷으로 앵커 3범주 + A4 경고
-node framework/specgate.mjs --selftest          # 룰 매핑·mute·로그 22건 대조
+node framework/specgate.mjs --selftest          # 룰 매핑·mute·로그·볼륨 26건 대조
 ```
 
 `specgate`는 **검사를 하나도 재구현하지 않는다** — 위 도구들의 결과에 번호와 정적 힌트를 입힐
 뿐이고, 검출력은 한 건도 늘지 않는다. 번호는 `SG1001~1010`(C1~C5) · `SG1011~1015`(D1~D5) ·
-`SG1021~1027`(앵커 A1~A4 · 드리프트 missing/stale/modified) · `SG1000`(SPEC 부재)이고, 훅 stderr도
-같은 한 줄 포맷을 쓴다. 프로젝트 루트에 `.specgate.json`을 두면 `{"mute":["SG1006"]}`으로
-**Warning만** 끌 수 있다 — Error는 mute되지 않는다.
+`SG1021~1027`(앵커 A1~A4 · 드리프트 missing/stale/modified) · `SG1000`(SPEC 부재) ·
+`SG1031~1034`(볼륨 — **Warning 전용, 차단 승격 금지**)이고, 훅 stderr도 같은 한 줄 포맷을 쓴다.
+`verify`는 specprobe의 `volume` 값을 임계와 대조해 SG1031~1034를 병기한다 — 임계 기본값은
+활성 문장 40 · [추론] 비율 0.5 · 표 행수 80(임의의 시작점, 실사용 관측 대상)이고, 프로젝트 루트
+`.specgate.json`의 `{"volume":{"activeSentences":30}}` 형태로 바꾼다. SG1034(접기 제안)는
+SG1031이 발동 중이고 아카이브 후보가 1건 이상일 때만 뜬다. 같은 파일에서 `{"mute":["SG1006"]}`으로
+**Warning만** 끌 수 있고(Error는 mute되지 않는다), `interview.mute`(범주 번호 배열)는
+`spec-interview stats`가 읽어 저장된 범주를 질문 승격에서 뺀다.
 
 `drift`에서만 `--json`의 `loc.file`이 SPEC이 아니라 **코드 파일**을 가리킨다 — 고칠 대상이 코드이기
 때문이다. `spec-anchor record`는 specgate에 **없다**: 이 CLI는 읽기 전용 판정만 감싸고 record는
@@ -131,8 +136,9 @@ node framework/specgate.mjs --selftest          # 룰 매핑·mute·로그 22건
 - 게이트 대상 확장자는 `hooks/spec-gate.mjs`의 `SRC`에 하드코딩돼 있다. 설정으로 빼지 않았다.
 - **델타 분기는 본 SPEC 요구를 약화시키는 통로다.** 게이트는 새 기능과 수정을 구별하지 못하므로,
   새 기능을 «수정»으로 위장하면 10범주 점검표 대신 델타 1장으로 pre를 통과할 수 있다.
-- **볼륨(`specprobe`)은 아무것도 막지 않는다.** 임계값을 아는 도구가 아직 없고(판정은 KF4 R4의
-  `.specgate.json` 몫), 문장 수·표 행수는 읽기 부담의 **대리 지표**다 — 길이·밀도·난도는 재지 않는다.
+- **볼륨은 아무것도 막지 않는다.** `specgate verify`가 임계 초과를 SG1031~1034로 내지만 전부
+  Warning이고 어느 훅에도 안 걸린다 — 경고가 리뷰 행동을 바꾼다는 실측은 없다. 임계 기본값
+  (40·0.5·80)은 임의의 시작점이고, 문장 수·표 행수는 읽기 부담의 **대리 지표**다 — 길이·밀도·난도는 재지 않는다.
   «아카이브» 이름의 타용도 절은 오마스킹된다. `archiveCandidates`에는 근거 위치 위양성이 있다
   (정의 줄의 «(근거: 문서:줄)»만으로 후보에 오른다) — 사람 승인이 뒤에 있어 실해는 제한적이다.
 - 자동 병합의 안전망은 «병합이 검사 위반을 늘리지 않았는가» 하나뿐이고, 그건 **검사가 보는 것만**

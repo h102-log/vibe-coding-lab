@@ -22,9 +22,11 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash(node:*)
 
 §0~§2 초안까지 쓴 뒤, 구현 문장을 쓰기 전에 **침묵 인터뷰**를 한 번 한다.
 
-1. `node "${CLAUDE_PLUGIN_ROOT}/spec-interview.mjs" stats` 를 먼저 돌린다. `mute 권장` 범주가
-   있으면 질문 전에 보고하고 이번 세션에서 그 범주의 승격을 멈출지 사용자에게 묻는다 — 권장이지
-   결정이 아니고, 저장하지 않는다.
+1. `node "${CLAUDE_PLUGIN_ROOT}/spec-interview.mjs" stats` 를 먼저 돌린다. `저장된 mute` 범주는
+   질문으로 승격하지 않는다 — 후보였다면 §2.3 표에만 적는다. `mute 권장` 범주가 있으면 질문 전에
+   보고하고 이번 세션에서 그 범주의 승격을 멈출지 사용자에게 묻는다. 사용자가 앞으로도 계속
+   멈추라고 하면 `.specgate.json`의 `interview.mute` 배열에 그 범주 번호를 넣는다(Edit) —
+   승인 없이 저장하지 않는다.
 2. §2 점검표의 `Partial`/`Missing` 중 SKILL.md §2 선별 기준대로 **최대 3개만** 질문으로 승격한다.
 3. **한 번에 하나씩** 묻는다. 각 질문은 네 줄이다 — 질문 한 줄 · `왜 모호한가` 한 줄(요구 문장의
    무엇이 그 값을 정하지 않았는가) · `제안 기본값` 하나 · `답을 쓰거나 / Enter(기본값 수락) /
