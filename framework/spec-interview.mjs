@@ -30,6 +30,19 @@ function append(dir, row) {
   }
 }
 
+// KF4 R4 — 저장된 카테고리 mute. `.specgate.json`의 `interview.mute`(범주 번호 배열)를 **읽기만**
+// 한다 — 쓰는 쪽은 /spec 문안의 사용자 승인 절차다. specgate.mjs의 로더를 import하지 않는 이유:
+// 그쪽 정적 import 사슬(spec-verify·spec-delta·spec-anchor)이 통째로 딸려온다 — 읽을 것은 JSON 한 파일이다.
+// 파일 없음·파싱 실패·규약 밖 값 = mute 없음. 깨진 설정이 인터뷰를 막으면 안 된다.
+export function readMuted(dir) {
+  try {
+    const m = JSON.parse(readFileSync(join(dir, '.specgate.json'), 'utf8'))?.interview?.mute;
+    return Array.isArray(m)
+      ? [...new Set(m.filter((c) => Number.isInteger(c) && c >= 1 && c <= CATS))].sort((a, b) => a - b)
+      : [];
+  } catch { return []; }
+}
+
 // 깨진 줄은 세고 버린다 — 이 파일은 도구 밖에서도 손댈 수 있다. `\r`는 CRLF 환경(이 리포) 몫.
 export function readRows(dir) {
   const p = join(dir, FILE);
@@ -52,6 +65,7 @@ export function readRows(dir) {
 // ── 집계 ───────────────────────────────────────────────────────────────────
 export function stats(dir) {
   const { rows, malformed } = readRows(dir);
+  const muted = readMuted(dir);
   const byCategory = {};
   for (const r of rows) {
     const c = (byCategory[r.cat] ??= { asked: 0, answer: 0, accept: 0, skip: 0, recent10skip: 0, muteSuggest: false });
@@ -62,18 +76,21 @@ export function stats(dir) {
   for (const [cat, c] of Object.entries(byCategory)) {
     const recent = rows.filter((r) => String(r.cat) === cat).slice(-WINDOW);
     c.recent10skip = recent.filter((r) => r.resp === 'skip').length;
-    c.muteSuggest = recent.length === WINDOW && c.recent10skip >= MUTE;
+    // 저장된 mute에는 권장을 반복하지 않는다 — 권장은 «저장할까»라는 질문이고 이미 답이 있다.
+    c.muteSuggest = recent.length === WINDOW && c.recent10skip >= MUTE && !muted.includes(Number(cat));
   }
   return {
     file: FILE,
     total: rows.length,
     malformed,
+    muted,
     byCategory,
     muteSuggest: Object.keys(byCategory).filter((c) => byCategory[c].muteSuggest).map(Number),
   };
 }
 
 function report(s) {
+  if (s.muted.length) console.log(`저장된 mute: 범주 ${s.muted.join(', ')} — 질문으로 승격하지 않는다`);
   if (!s.total) {
     console.log(`인터뷰 기록이 없다 (${s.file}).`);
     return;
@@ -163,6 +180,31 @@ const CASES = [
   ['T12 기록 실패 무해', (d) => { clean(d); mkdirSync(join(d, FILE)); },
     ['log', '--cat', '3', '--resp', 'skip', ...Q], (r) =>
       r.status === 0 && /기록 실패/.test(r.stderr) ? null : `exit ${r.status} · stderr ${JSON.stringify(r.stderr.trim().slice(0, 40))}`],
+  // ── KF4 R4 — `.specgate.json`의 저장 mute ──
+  // T8과 같은 시드에 저장 mute만 더한다 — 권장 [3]이 억제되는 것이 차분이다.
+  ['T13 저장 mute 로드', (d) => {
+    clean(d);
+    seed(d, [...rep(3, 'skip', 9), ...rep(3, 'answer', 1)]);
+    writeFileSync(join(d, '.specgate.json'), '{"interview":{"mute":[3]}}');
+  }, ['stats', '--json'], (r) => {
+    const s = json(r);
+    if (!s) return 'JSON 파싱 실패';
+    if (JSON.stringify(s.muted) !== '[3]') return `muted ${JSON.stringify(s.muted)}`;
+    return s.muteSuggest.length === 0 ? null : `저장된 범주에 권장 반복 ${JSON.stringify(s.muteSuggest)}`;
+  }],
+  ['T14 규약 밖 mute 값', (d) => {
+    writeFileSync(join(d, '.specgate.json'), '{"interview":{"mute":[0, 11, "3", 5, 5]}}');
+  }, ['stats', '--json'], (r) => {
+    const s = json(r);
+    return s && JSON.stringify(s.muted) === '[5]' ? null : `muted ${JSON.stringify(s?.muted)}`;
+  }],
+  ['T15 깨진 설정 무해', (d) => {
+    writeFileSync(join(d, '.specgate.json'), '{interview:');
+  }, ['stats', '--json'], (r) => {
+    const s = json(r);
+    if (r.status !== 0 || !s) return `exit ${r.status}`;
+    return JSON.stringify(s.muted) === '[]' ? null : `muted ${JSON.stringify(s.muted)}`;
+  }],
 ];
 
 function selftest() {
