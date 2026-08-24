@@ -1,0 +1,8 @@
+{
+  "approvedAt": "2026-08-24T00:00:00Z",
+  "evalMd": "6f678a72",
+  "tests": {
+    "tests/eval/cart.test.ts": "2aa6bc04"
+  },
+  "sentences": {}
+}
