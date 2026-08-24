@@ -415,6 +415,8 @@ function selftest() {
     for (const m of as.matchAll(/check: '(A\d)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
     const es = readFileSync(join(HERE, 'eval-verify.mjs'), 'utf8');
     for (const m of es.matchAll(/'((?:E\d|snapshot|coverage)\.\w+)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
+    const gs = readFileSync(join(HERE, 'hooks', 'eval-gate.mjs'), 'utf8');
+    for (const m of gs.matchAll(/kind: '((?:E\d|snapshot|coverage|gate)\.\w+)'/g)) if (!RULES[m[1]]) miss.push(m[1]);
     return miss.length ? `RULES 미등재: ${[...new Set(miss)].join(', ')}` : null;
   });
 
