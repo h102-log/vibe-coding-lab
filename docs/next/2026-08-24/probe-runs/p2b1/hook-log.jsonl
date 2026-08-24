@@ -1,0 +1,4 @@
+{"t":"2026-08-24T11:53:32.281Z","hook":"fast-allow","phase":"start"}
+{"t":"2026-08-24T11:53:32.283Z","hook":"fast-allow","phase":"end"}
+{"t":"2026-08-24T11:53:32.287Z","hook":"fast-deny","phase":"start"}
+{"t":"2026-08-24T11:53:32.288Z","hook":"fast-deny","phase":"end"}

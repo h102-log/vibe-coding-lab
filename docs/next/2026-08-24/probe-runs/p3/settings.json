@@ -1,0 +1,2 @@
+{ "hooks": { "Stop": [ { "hooks": [
+  { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/hooks/slow-deny.mjs\"", "timeout": 5 } ] } ] } }

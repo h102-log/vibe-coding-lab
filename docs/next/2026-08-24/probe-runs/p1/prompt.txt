@@ -1,0 +1,1 @@
+Create src/probe.ts exporting function add(a, b). Do nothing else.
