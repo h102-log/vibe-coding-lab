@@ -1,0 +1,116 @@
+{
+  "phase": "final",
+  "at": "2026-08-24T15:32:20.290Z",
+  "runOk": true,
+  "runner": "vitest",
+  "items": [
+    {
+      "id": "EV1",
+      "status": "green"
+    },
+    {
+      "id": "EV2",
+      "status": "green"
+    },
+    {
+      "id": "EV3",
+      "status": "green"
+    },
+    {
+      "id": "EV4",
+      "status": "green"
+    },
+    {
+      "id": "EV5",
+      "status": "green"
+    },
+    {
+      "id": "EV6",
+      "status": "green"
+    },
+    {
+      "id": "EV7",
+      "status": "green"
+    },
+    {
+      "id": "EV8",
+      "status": "green"
+    },
+    {
+      "id": "EV9",
+      "status": "green"
+    },
+    {
+      "id": "EV10",
+      "status": "green"
+    },
+    {
+      "id": "EV11",
+      "status": "green"
+    },
+    {
+      "id": "EV12",
+      "status": "green"
+    },
+    {
+      "id": "EV13",
+      "status": "green"
+    },
+    {
+      "id": "EV14",
+      "status": "green"
+    },
+    {
+      "id": "EV15",
+      "status": "green"
+    },
+    {
+      "id": "EV16",
+      "status": "green"
+    },
+    {
+      "id": "EV17",
+      "status": "green"
+    },
+    {
+      "id": "EV18",
+      "status": "green"
+    },
+    {
+      "id": "EV19",
+      "status": "green"
+    },
+    {
+      "id": "EV20",
+      "status": "green"
+    },
+    {
+      "id": "EV21",
+      "status": "green"
+    },
+    {
+      "id": "EV22",
+      "status": "green"
+    },
+    {
+      "id": "EV23",
+      "status": "green"
+    },
+    {
+      "id": "EV24",
+      "status": "green"
+    }
+  ],
+  "evalLockHash": "dddbd44d",
+  "implHash": {
+    "src/App.tsx": "e61d0f29",
+    "src/CartList.tsx": "50be6736",
+    "src/main.tsx": "718770f0",
+    "tests/eval/app.test.tsx": "4f13dde3",
+    "tests/eval/cart-list-total.test.tsx": "54cc7fad",
+    "tests/eval/cart-list.test.tsx": "d7afdfb6",
+    "vite.config.ts": "588bb0d8",
+    "vitest.config.ts": "84e4576e"
+  },
+  "redAt": "2026-08-24T15:31:05.599Z"
+}

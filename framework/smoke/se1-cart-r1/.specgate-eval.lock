@@ -1,0 +1,33 @@
+{
+  "approvedAt": "2026-08-24T15:31:01.126Z",
+  "evalMd": "c4b1d03e",
+  "tests": {
+    "tests/eval/cart-list.test.tsx": "d7afdfb6",
+    "tests/eval/cart-list-total.test.tsx": "54cc7fad",
+    "tests/eval/app.test.tsx": "4f13dde3"
+  },
+  "sentences": {
+    "S1": "e65e53ee",
+    "S2": "eca6465a",
+    "S3": "c0d76819",
+    "S4": "294ef27c",
+    "S5": "747f13ac",
+    "S6": "6cc92ea7",
+    "S7": "6d673fe0",
+    "S8": "b7dbc459",
+    "S9": "04060131",
+    "S12": "9502fdfd",
+    "S11": "80ae0942",
+    "S13": "d1d8f1f6",
+    "I1": "001a270f",
+    "I2": "d4275a37",
+    "I3": "4e037972",
+    "I4": "b5cc6952",
+    "I5": "0bfc709f",
+    "I6": "54aae0b8",
+    "I8": "e00007c9",
+    "I9": "d5d88b53",
+    "I11": "1b46a13b",
+    "I10": "5a5d979a"
+  }
+}
