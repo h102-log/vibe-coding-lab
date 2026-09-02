@@ -146,7 +146,7 @@ node framework/specgate.mjs --selftest                  # 룰 매핑 전수·mut
 # (적대 검증 확인 17건 중 ①. «파일:줄 없는 지목»은 경고로만 나온다). 알려진 한계는 r36 §9-2에 있다.
 # edd 산출물(EVAL.md) 검사·러너·게이트 3종 (r54~r57 신설, 스모크 r58)
 node framework/eval-verify.mjs <EVAL.md 경로> [--json]   # E1~E7 정적 검사 — exit 0 위반없음 / 1 위반있음 / 2 파일없음
-node framework/eval-run.mjs <app-dir> --phase red|final  # 평가 실행 → .specgate-eval.json 스냅샷 — exit 0 = 스냅샷 산출(빨간불이어도 0, 판정을 exit에 싣지 않는다). --lock은 /eval 승인이 부른다
+node framework/eval-run.mjs <app-dir> --phase red|final  # 평가 실행(러너는 EVAL.md `- 러너:` 줄 — vitest|pytest, r59) → .specgate-eval.json 스냅샷 — exit 0 = 스냅샷 산출(빨간불이어도 0, 판정을 exit에 싣지 않는다). --lock은 /eval 승인이 부른다
 node framework/hooks/eval-gate.mjs --selftest            # 게이트 분기 22건 — pre: 락·red 스냅샷·E1~E5 / stop: final·신선도·E6·E7, exit 0 통과 / 2 차단
 # sdd 판정 정의·재판정 루브릭 v2.1 = framework/rubric-sdd.md (r22 §5-2 → r30 부록 A → r32 개정, r33 검증: 합성 픽스처 6장×3세션 · r35 검증: 실물 SPEC 1장×3세션 — 둘 다 전건 재현. 판정은 육안, 인용 필수 — 판정자에게는 A-0~A-5 본문만 준다)
 # 재판정 프롬프트는 부록 B-3의 4줄 + 5행 «셸 명령을 쓰지 마라. 파일을 읽고 세라.» — 이 줄이 없으면 판정자가 계수를 셸로 하려다 Bash 거부로 무효가 된다(r33 무효 2건 → r35 0건)
