@@ -5,6 +5,8 @@
 //   node framework/eval-run.mjs <app-dir> --phase red|final [--json]   # → <app-dir>/.specgate-eval.json
 //   node framework/eval-run.mjs <app-dir> --lock                        # 승인 시 1회 — 락 생성 + 해시 열 채움
 //   node framework/eval-run.mjs --selftest
+// 러너는 EVAL.md 머리의 «- 러너: vitest|pytest» 줄로 고른다(기본 vitest). pytest는 결과를 vitest json
+// 리포터 모양으로 받아 같은 파싱·매핑을 탄다 — 순수층은 러너를 모른다.
 // 종료 코드에 판정을 싣지 않는다(verify-tdd 선례): 0 = 스냅샷 산출 완료(빨간불이어도 0),
 // 1 = 계측 실패, 2 = 사용법 오류. red/green은 스냅샷 안에만 있다 — 최상위 ok/success/pass 금지
 // (runOk는 판정이 아니라 계측 성공 여부라 예외, verify-tdd.mjs:391 선례).
@@ -15,7 +17,7 @@ import {
   existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve, sep } from "node:path";
+import { delimiter, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseEval, hash8, canonical } from "./eval-verify.mjs";
 
@@ -23,8 +25,8 @@ const posix = (p) => p.split(sep).join("/"); // 사본: verify-tdd.mjs:23
 // 사본: hooks/spec-gate.mjs:19 — 훅 모듈 import는 방향이 반대다(처치 도구가 훅을 import하면
 // 훅 수정이 러너를 흔든다). 값 복사만.
 const SRC_RE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|swift|kt|c|cc|cpp|h|hpp|cs|vue|svelte)$/i;
-// 동일 값: verify-tdd.mjs:29
-const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "coverage"]);
+// verify-tdd.mjs:29 + Python 4종(.venv/venv는 .py 수천 장, __pycache__·.pytest_cache는 러너 부산물)
+const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "coverage", ".venv", "venv", "__pycache__", ".pytest_cache"]);
 const TIMEOUT_MS = 120_000; // verify-tdd 고정값 5 복사 — 조정은 planedd5 §7 #4 선택 대기
 // SPEC 정의 줄 — spec-verify SENT_ID가 허용하는 폭(`*`/`+` 마커·`S7a`형 접미)과 같게 (planedd5 §3-1)
 const SENT_DEF_RE = /^\s*[-*+]\s+([SI]\d{1,3}[a-z]?)\./;
@@ -52,9 +54,15 @@ function parseReport(text) {
   }
 }
 
-// 매핑 규약(9장 공통 인터페이스): 이름의 /\bEV\d+\b/ 전부. describe의 EV도 fullName에 합쳐져 온다.
+// 러너 선택 — EVAL.md 머리의 «- 러너: …» 줄. 없으면 vitest(템플릿 기본값).
+const RUNNERS = ["vitest", "pytest"];
+const runnerOf = (evalText) => (/^\s*[-*]\s*러너\s*:\s*(\S+)/m.exec(evalText)?.[1] ?? "vitest").toLowerCase();
+
+// 매핑 규약(9장 공통 인터페이스): 이름 속 EV\d+ 전부. 경계는 «영숫자 아님»(\b 아님 — pytest 함수명
+// `test_EV1_x`의 `_`를 경계로 쳐야 한다). describe의 EV도 fullName에 합쳐져 온다.
+const EV_RE = /(?<![A-Za-z0-9])EV\d+(?![A-Za-z0-9])/g;
 const evsInName = (a) =>
-  (a.fullName ?? [...(a.ancestorTitles ?? []), a.title ?? ""].join(" ")).match(/\bEV\d+\b/g) ?? [];
+  (a.fullName ?? [...(a.ancestorTitles ?? []), a.title ?? ""].join(" ")).match(EV_RE) ?? [];
 
 function mapReport(report, manifest, appAbs) {
   const known = new Set(manifest.items.map((it) => it.id));
@@ -94,10 +102,10 @@ function mapReport(report, manifest, appAbs) {
   return { items, mapped, warnings: [...warnings], notes };
 }
 
-function buildSnapshot({ phase, at, runError, mapped, items, prev, evalLockHash, implHash }) {
+function buildSnapshot({ phase, at, runner = "vitest", runError, mapped, items, prev, evalLockHash, implHash }) {
   if (!runError && mapped === 0) runError = "매핑된 EV 0건 — 테스트 이름에 EV 접두가 없다";
   const runOk = !runError;
-  const snapshot = { phase, at, runOk, runner: "vitest", items: runOk ? items : [], evalLockHash, implHash };
+  const snapshot = { phase, at, runOk, runner, items: runOk ? items : [], evalLockHash, implHash };
   if (runError) snapshot.runError = runError; // 진단용 — 게이트는 읽지 않는다 (planedd5 §3-6)
   if (phase === "final") {
     // redAt 승계 — planedd5 §3-7. 문면 이탈 2건(2026-08-24 사용자 승인, rN 기록):
@@ -137,11 +145,12 @@ function replaceHashCell(rawLine, cellIdx, h8) {
 // ── 실행층 ─────────────────────────────────────────────────────────────────
 
 // 사본: verify-tdd.mjs:235-266 (고정값 5 — 타임아웃 + 프로세스 «그룹» 킬)
-function spawnGroupKill(cmd, args, { cwd, timeoutMs }) {
+function spawnGroupKill(cmd, args, { cwd, timeoutMs, env }) {
   return new Promise((resolvePromise) => {
     const isWin = process.platform === "win32";
     const child = spawn(cmd, args, {
       cwd,
+      env,
       detached: !isWin,
       stdio: ["ignore", "ignore", "pipe"],
     });
@@ -192,6 +201,63 @@ async function runVitestRaw(appAbs, paths) {
           (res.stderrTail ? ` stderr: ${res.stderrTail.trim()}` : ""),
       };
     return { outText: readFileSync(outPath, "utf8") }; // 파싱은 순수층(parseReport) 몫
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+// pytest 분기 — 결과를 vitest json 리포터 모양({testResults:[{name, assertionResults:[{fullName,status}]}]})
+// 으로 받아 parseReport·mapReport를 그대로 탄다. 플러그인은 pytest 내장 훅만 쓴다(pytest-json-report 같은
+// 추가 의존성 없음) — 임시 디렉터리에 써서 PYTHONPATH + `-p`로 싣는다. 수집 실패(구현 전 import 에러 =
+// red-check의 정상 경로)는 assertionResults 빈 파일로 내 크래시 폴백을 탄다. 다른 파일은 `--continue-on-collection-errors`로 그대로 돈다(vitest처럼 파일 단위 격리). fullName = nodeid.
+const PYTEST_PLUGIN = `import json, os
+_items, _crashed = {}, set()
+def pytest_collectreport(report):
+    if report.failed and report.nodeid:
+        _crashed.add(report.nodeid.split("::")[0])
+def pytest_runtest_logreport(report):
+    cur = _items.get(report.nodeid, "passed")
+    if report.outcome == "failed": cur = "failed"
+    elif report.outcome == "skipped" and cur == "passed": cur = "skipped"
+    _items[report.nodeid] = cur
+def pytest_sessionfinish(session, exitstatus):
+    files = {}
+    for nid, st in _items.items():
+        files.setdefault(nid.split("::")[0], []).append({"fullName": nid, "status": st})
+    for f in _crashed:
+        files.setdefault(f, [])
+    root = str(session.config.rootpath)
+    out = {"testResults": [{"name": os.path.join(root, f), "assertionResults": a} for f, a in files.items()]}
+    with open(os.environ["SPECGATE_EVAL_OUT"], "w", encoding="utf-8") as fh:
+        json.dump(out, fh)
+`;
+
+// 프로젝트 venv의 python을 우선한다 — pytest·fastapi는 보통 거기 깔린다. 없으면 PATH의 것.
+function pythonOf(appAbs) {
+  for (const p of [".venv/Scripts/python.exe", ".venv/bin/python", "venv/Scripts/python.exe", "venv/bin/python"])
+    if (existsSync(join(appAbs, p))) return join(appAbs, p);
+  return process.platform === "win32" ? "python" : "python3";
+}
+
+async function runPytestRaw(appAbs, paths) {
+  const tmp = mkdtempSync(join(tmpdir(), "eval-run-"));
+  try {
+    const outPath = join(tmp, "result.json");
+    writeFileSync(join(tmp, "specgate_report.py"), PYTEST_PLUGIN);
+    const env = {
+      ...process.env, SPECGATE_EVAL_OUT: outPath,
+      PYTHONPATH: tmp + (process.env.PYTHONPATH ? delimiter + process.env.PYTHONPATH : ""),
+    };
+    const res = await spawnGroupKill(
+      pythonOf(appAbs),
+      ["-m", "pytest", ...paths, "-p", "specgate_report", "-p", "no:cacheprovider", "--continue-on-collection-errors", "-q"],
+      { cwd: appAbs, timeoutMs: TIMEOUT_MS, env },
+    );
+    if (res.timedOut) return { runError: "타임아웃(120s)" };
+    if (res.code === null) return { runError: `spawn: ${res.stderrTail.trim()}` };
+    if (!existsSync(outPath))
+      return { runError: `결과 파일 부재 (exit ${res.code})` + (res.stderrTail ? ` stderr: ${res.stderrTail.trim()}` : "") };
+    return { outText: readFileSync(outPath, "utf8") };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -309,7 +375,10 @@ async function runCmd(appAbs, phase, wantJson) {
   } catch {}
   const implHash = walkImpl(appAbs);
   const at = new Date().toISOString();
-  const r = await runVitestRaw(appAbs, m.testFiles);
+  const runner = runnerOf(evalText);
+  const r = !RUNNERS.includes(runner) ? { runError: `지원하지 않는 러너 «${runner}» — ${RUNNERS.join(" | ")}` }
+    : runner === "pytest" ? await runPytestRaw(appAbs, m.testFiles)
+    : await runVitestRaw(appAbs, m.testFiles);
   let runError = r.runError ?? null;
   let items = [], mapped = 0, warnings = [], notes = [];
   if (!runError) {
@@ -318,7 +387,7 @@ async function runCmd(appAbs, phase, wantJson) {
     else ({ items, mapped, warnings, notes } = mapReport(pr.report, m, appAbs));
   }
   const { snapshot, exit, advisories } = buildSnapshot({
-    phase, at, runError, mapped, items, prev, evalLockHash, implHash,
+    phase, at, runner, runError, mapped, items, prev, evalLockHash, implHash,
   });
   writeFileSync(snapPath, JSON.stringify(snapshot, null, 2) + "\n"); // 파일은 항상 쓴다 — 무효 스냅샷이 곧 SG1048의 재료
   for (const w of warnings) console.error(`경고: ${w}`);
@@ -388,6 +457,21 @@ async function selftest() {
     : g.exit !== exit ? `exit ${g.exit}`
     : g.snapshot.runOk !== (exit === 0) ? `runOk ${g.snapshot.runOk}`
     : null;
+
+  // pytest 실물 픽스처(플러그인 대조) — 통과·실패·skip 1건씩 + import 사망 1장. t 루프가 동기라 먼저 돌린다.
+  const M_PY = parseManifest(EVAL_FIX.replace(/lookup\.test\.tsx/g, "test_a.py").replace(/lookup-edge\.test\.tsx/g, "test_b.py"));
+  const pyTmp = mkdtempSync(join(tmpdir(), "eval-run-py-"));
+  let PY;
+  try {
+    mkdirSync(join(pyTmp, "tests", "eval"), { recursive: true });
+    writeFileSync(join(pyTmp, "tests", "eval", "test_a.py"),
+      "import pytest\ndef test_EV1_ok(): assert True\ndef test_EV2_no(): assert False\n@pytest.mark.skip\ndef test_EV3_skip(): pass\n");
+    writeFileSync(join(pyTmp, "tests", "eval", "test_b.py"), "import no_such_module_specgate\ndef test_EV4_x(): pass\n");
+    PY = await runPytestRaw(pyTmp, M_PY.testFiles);
+    if (!PY.runError) PY.mapped = mapReport(parseReport(PY.outText).report, M_PY, pyTmp);
+  } finally {
+    rmSync(pyTmp, { recursive: true, force: true });
+  }
 
   const fails = [];
   let total = 0;
@@ -465,6 +549,33 @@ async function selftest() {
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
+  });
+  t("d 러너 선택", () => {
+    const of = (line) => runnerOf(EVAL_FIX.replace("- 러너: vitest\n", line));
+    const got = [of("- 러너: vitest\n"), of("- 러너: PyTest\n"), of("")].join(" ");
+    if (got !== "vitest pytest vitest") return `vitest/pytest/기본 → ${got}`;
+    if (RUNNERS.includes(of("- 러너: jest\n"))) return "jest가 지원 목록에";
+    const b = buildSnapshot({ phase: "red", at: "T", runner: "pytest", runError: null, mapped: 1, items: [{ id: "EV1", status: "red" }], prev: null, evalLockHash: null, implHash: {} });
+    return b.snapshot.runner === "pytest" && run(BASE()).snapshot.runner === "vitest" ? null : `runner ${b.snapshot.runner}`;
+  });
+  t("e pytest 이름 매핑", () => {
+    // nodeid의 `_`·`::`가 경계여야 EV가 잡힌다. EV12에서 EV1을 오려내지 않는다(본표 밖 EV12 경고로 나와야 한다)
+    const g = run(mut((r) => {
+      r.testResults[0].assertionResults = [
+        AR("tests/eval/test_lookup.py::test_EV1_button", "passed"), AR("tests/eval/test_lookup.py::Test_EV2::test_click", "failed"),
+        AR("tests/eval/test_lookup.py::test_EV3_rows[3]", "passed"), AR("tests/eval/test_lookup.py::test_EV12_other", "passed"),
+      ];
+    }));
+    return want(g, "EV1:green EV2:red EV3:green EV4:green EV5:green", 0) ??
+      (g.warnings.some((w) => w.includes("EV12")) ? null : `warnings ${JSON.stringify(g.warnings)}`);
+  });
+  t("f pytest 실물", () => {
+    if (PY.runError && /No module named pytest|spawn:/.test(PY.runError)) { console.log(`     skip — ${PY.runError}`); return null; }
+    if (PY.runError) return `runError «${PY.runError}»`;
+    const g = PY.mapped;
+    const got = g.items.map((i) => `${i.id}:${i.status}`).join(" ");
+    if (got !== "EV1:green EV2:red EV3:red EV4:red EV5:red") return `items «${got}»`;
+    return g.notes.some((n) => /^EV3: skipped 1건/.test(n)) ? null : `notes ${JSON.stringify(g.notes)}`;
   });
   t("c 해시 셀 채움", () => {
     // 해시 열만 비운 판 → 채우면 원판과 바이트 동일해야 한다 (--lock ①의 회귀 감시)

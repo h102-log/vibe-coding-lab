@@ -15,7 +15,7 @@
 
 그다음 **세션을 끄고 다시 연다.** 훅은 세션 시작 때 로드되므로 설치한 그 세션에는 걸리지 않는다(실측).
 
-- 필요한 것: Node 18+. 다른 의존성은 없다. 평가 축(`/specgate:eval`)까지 쓰려면 프로젝트에 vitest가 설치돼 있어야 한다.
+- 필요한 것: Node 18+. 다른 의존성은 없다. 평가 축(`/specgate:eval`)까지 쓰려면 프로젝트에 vitest(Python 프로젝트면 pytest)가 설치돼 있어야 한다.
 - 권한 모드는 **`acceptEdits`**로 쓴다. `bypassPermissions`에서는 PreToolUse 차단이 무력화된다.
 - 되돌리는 수단이 git이다. git 리포에서 쓴다.
 - 설치 없이 잠깐 써보려면: `claude --plugin-dir C:\Users\bhy99\proj\proj3\framework`
@@ -107,7 +107,7 @@ node "$CLAUDE_PLUGIN_ROOT/specgate.mjs" drift SPEC.md        # 이후 코드가 
 ## 4. 평가 축 켜기 — `/specgate:eval` (선택)
 
 `EVAL.md`가 없으면 이 축은 통째로 꺼져 있다. 켜면 «구현 전에 성공 기준을 테스트로 동결하고, 구현 후 재실행»이 강제된다.
-vitest가 필요하다.
+vitest 또는 pytest가 필요하다 — `EVAL.md` 머리의 `- 러너:` 줄로 고르고, `.venv`/`venv`가 있으면 그 python으로 돈다.
 
 ```
 /specgate:spec            ← SPEC 먼저 (권장 — 평가 항목의 근거가 SPEC 문장 ID가 된다)
@@ -118,7 +118,7 @@ vitest가 필요하다.
 
 `/specgate:eval`이 하는 일:
 1. SPEC §1·§2 문장에서 평가 항목(`EV1` …)을 도출한다. `선택 대기` 행은 근거로 쓰지 않는다(E4).
-2. 항목마다 «무엇을 어떻게 재나» 한 줄 + `tests/eval/<파일>.test.ts` 경로. 테스트 이름 앞에 `EV3:` 접두.
+2. 항목마다 «무엇을 어떻게 재나» 한 줄 + `tests/eval/<파일>.test.ts` 경로. 테스트 이름 앞에 `EV3:` 접두(pytest: `tests/eval/test_<파일>.py` · `test_EV3_…`).
 3. **항목 표를 제시하고 승인을 받는다.** 일괄 승인이 기본, 항목별 제외 가능. «알아서»면 `위임`으로 기록된다.
    승인 전에는 다음으로 넘어가지 않는다.
 4. 락 생성(`.specgate-eval.lock`) — 이때부터 `EVAL.md`와 `tests/eval/`은 동결이다.

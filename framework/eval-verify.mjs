@@ -10,7 +10,7 @@
 // ⚠ E7이 재는 것은 C4와 같은 계열의 한계다 — «사유를 적는 행위»지 사유의 내용이 아니다.
 //   개정 행 한 줄이면 어떤 수정이든 reason 단계를 통과한다.
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync, mkdtempSync, rmSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -318,7 +318,7 @@ export function loadEval(evalPath, phase = 'lint') {
     let ents;
     try { ents = readdirSync(d, { withFileTypes: true }); } catch { return; }
     for (const e of ents) {
-      if (e.isDirectory()) walk(join(d, e.name), `${rel}/${e.name}`);
+      if (e.isDirectory()) { if (e.name !== "__pycache__") walk(join(d, e.name), `${rel}/${e.name}`); } // pytest 바이트코드는 테스트 파일이 아니다(r59)
       else testsNow[`${rel}/${e.name}`] = hash8(readFileSync(join(d, e.name), 'utf8'));
     }
   };
@@ -472,7 +472,7 @@ function selftest() {
     console.log(`${why ? 'FAIL' : 'ok  '} ${name.padEnd(20)} ${why ?? ''}`);
   }
 
-  // CLI 실측 3건 — 임시 파일은 mkdtempSync만 쓴다(픽스처 디렉터리 신설 금지, 개발 규칙 4).
+  // CLI 실측 4건 — 임시 파일은 mkdtempSync만 쓴다(픽스처 디렉터리 신설 금지, 개발 규칙 4).
   const proj = mkdtempSync(join(tmpdir(), 'eval-verify-'));
   const cli = (p) => spawnSync(process.execPath, [fileURLToPath(import.meta.url), p], { encoding: 'utf8' }).status;
   try {
@@ -485,6 +485,14 @@ function selftest() {
         return cli(join(proj, 'EVAL.md')) === 1 ? null : `exit=${cli(join(proj, 'EVAL.md'))}`;
       }],
       ['C-3 없는 경로 → 2', () => (cli(join(proj, 'nosuch.md')) === 2 ? null : `exit=${cli(join(proj, 'nosuch.md'))}`)],
+      ['C-4 __pycache__ 무시', () => {
+        // pytest가 tests/eval/ 아래 남기는 바이트코드가 «파일 집합 변경»(SG1047)으로 잡히면 안 된다 — r59 FastAPI 스모크 실측
+        mkdirSync(join(proj, 'tests', 'eval', '__pycache__'), { recursive: true });
+        writeFileSync(join(proj, 'tests', 'eval', 'a.test.ts'), 'export {}\n');
+        writeFileSync(join(proj, 'tests', 'eval', '__pycache__', 'a.cpython-312.pyc'), 'x');
+        const keys = Object.keys(loadEval(join(proj, 'EVAL.md')).options.testsNow);
+        return JSON.stringify(keys) === '["tests/eval/a.test.ts"]' ? null : `keys ${JSON.stringify(keys)}`;
+      }],
     ];
     for (const [name, fn] of CLI) {
       let why;
@@ -494,7 +502,7 @@ function selftest() {
     }
   } finally { rmSync(proj, { recursive: true, force: true }); }
 
-  console.log(bad ? `selftest 실패 — ${bad}건 어긋남` : `selftest 통과 — 인라인 ${CASES.length}건 + CLI 3건`);
+  console.log(bad ? `selftest 실패 — ${bad}건 어긋남` : `selftest 통과 — 인라인 ${CASES.length}건 + CLI 4건`);
   process.exit(bad ? 1 : 0);
 }
 
