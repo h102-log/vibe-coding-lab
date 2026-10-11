@@ -19,7 +19,7 @@ import {
 import { tmpdir } from "node:os";
 import { delimiter, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseEval, hash8, canonical } from "./eval-verify.mjs";
+import { parseEval, hash8, canonical, evalTestHashes, loadEval, inspectEval } from "./eval-verify.mjs";
 
 const posix = (p) => p.split(sep).join("/"); // 사본: verify-tdd.mjs:23
 // 사본: hooks/spec-gate.mjs:19 — 훅 모듈 import는 방향이 반대다(처치 도구가 훅을 import하면
@@ -331,15 +331,14 @@ function lockCmd(appAbs) {
   if (filled !== evalText) writeFileSync(evalPath, filled);
   // ② ③ ④ ⑤
   const evalMd = hash8(filled);
-  const tests = {};
   for (const rel of m.testFiles) {
-    try {
-      tests[rel] = hash8(readFileSync(join(appAbs, rel), "utf8"));
-    } catch {
+    if (!existsSync(join(appAbs, rel))) {
       console.error(`계측 실패: 테스트 파일 부재 — ${rel}`);
       return 1;
     }
   }
+  // 본표 파일만이 아니라 tests/eval 전체 — E7이 대조하는 집합과 같아야 한다(보조 파일 오탐 방지)
+  const tests = evalTestHashes(appAbs);
   const lock = { approvedAt: new Date().toISOString(), evalMd, tests, sentences };
   writeFileSync(join(appAbs, ".specgate-eval.lock"), JSON.stringify(lock, null, 2) + "\n");
   console.log(
@@ -585,6 +584,27 @@ async function selftest() {
     if (me.error) return `빈 판 파싱 실패 — ${me.error}`;
     const filled = fillHashCells(empty, me, { S1: "e297df68", I2: "d4f21f56", I3: "14c4c44c" });
     return filled === EVAL_FIX ? null : "채운 결과가 원판과 다르다";
+  });
+  t("g 락 = tests/eval 전체", () => {
+    // 보조 파일(conftest.py·gd/*.gd)이 있어도 락 직후 E7이 없고, 락 뒤 보조 파일을 고치면 E7이 난다
+    const tmp = mkdtempSync(join(tmpdir(), "eval-run-lock-"));
+    try {
+      const ev = join(tmp, "tests", "eval");
+      mkdirSync(join(ev, "gd"), { recursive: true });
+      writeFileSync(join(tmp, "EVAL.md"),
+        EVAL_FIX.replace(/lookup\.test\.tsx/g, "test_a.py").replace(/lookup-edge\.test\.tsx/g, "test_b.py"));
+      for (const f of ["test_a.py", "test_b.py", "conftest.py", "gd/x.gd"]) writeFileSync(join(ev, f), `# ${f}\n`);
+      if (lockCmd(tmp) !== 0) return "lockCmd 실패";
+      const e7 = () => {
+        const io = loadEval(join(tmp, "EVAL.md"), "stop");
+        return inspectEval(io.evalText, io.options).violations.filter((v) => v.check === "E7").map((v) => v.msg);
+      };
+      if (e7().length) return `락 직후 E7 — ${e7().join(" / ")}`;
+      writeFileSync(join(ev, "gd", "x.gd"), "# 바뀜\n");
+      return e7().some((m) => m.includes("파일 수정")) ? null : `락 뒤 보조 파일 수정이 안 잡혔다 — ${JSON.stringify(e7())}`;
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   console.log(fails.length ? `selftest 실패 — ${fails.length}건 어긋남` : `selftest 통과 — 인라인 ${total}건`);
