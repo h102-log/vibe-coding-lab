@@ -284,6 +284,22 @@ export function inspectEval(evalText, {
 }
 
 // ── 파일 IO — CLI와 훅(planedd6)이 같은 적재를 쓴다 ────────────────────────
+// tests/eval 아래 전 파일의 해시. 락(eval-run --lock)과 동결 대조(E7)가 같은 집합을 봐야 해서 한 곳에 둔다
+// — 락이 본표 파일만 담으면 보조 파일(conftest.py 등)이 있는 순간 E7이 «파일 집합 변경»으로 오탐한다.
+export function evalTestHashes(dir) {
+  const out = {};
+  const walk = (d, rel) => {
+    let ents;
+    try { ents = readdirSync(d, { withFileTypes: true }); } catch { return; }
+    for (const e of ents) {
+      if (e.isDirectory()) { if (e.name !== "__pycache__") walk(join(d, e.name), `${rel}/${e.name}`); } // pytest 바이트코드는 테스트 파일이 아니다(r59)
+      else out[`${rel}/${e.name}`] = hash8(readFileSync(join(d, e.name), 'utf8'));
+    }
+  };
+  walk(join(dir, 'tests', 'eval'), 'tests/eval');
+  return out;
+}
+
 export function loadEval(evalPath, phase = 'lint') {
   let evalText;
   try { evalText = readFileSync(evalPath, 'utf8'); }
@@ -313,16 +329,7 @@ export function loadEval(evalPath, phase = 'lint') {
       else if ('evalFreeze' in j) notes.push(`구성 무시: evalFreeze «${j.evalFreeze}» — 기본값 reason`);
     } catch { notes.push('구성 무시: .specgate.json 파싱 실패 — evalFreeze 기본값 reason'); }
   }
-  const testsNow = {};
-  const walk = (d, rel) => {
-    let ents;
-    try { ents = readdirSync(d, { withFileTypes: true }); } catch { return; }
-    for (const e of ents) {
-      if (e.isDirectory()) { if (e.name !== "__pycache__") walk(join(d, e.name), `${rel}/${e.name}`); } // pytest 바이트코드는 테스트 파일이 아니다(r59)
-      else testsNow[`${rel}/${e.name}`] = hash8(readFileSync(join(d, e.name), 'utf8'));
-    }
-  };
-  walk(join(dir, 'tests', 'eval'), 'tests/eval');
+  const testsNow = evalTestHashes(dir);
   let implNow = null;
   if (snapshot && snapshot.implHash && typeof snapshot.implHash === 'object') {
     implNow = {};
