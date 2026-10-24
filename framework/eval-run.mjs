@@ -27,7 +27,7 @@ const posix = (p) => p.split(sep).join("/"); // 사본: verify-tdd.mjs:23
 const SRC_RE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|swift|kt|c|cc|cpp|h|hpp|cs|vue|svelte)$/i;
 // verify-tdd.mjs:29 + Python 4종(.venv/venv는 .py 수천 장, __pycache__·.pytest_cache는 러너 부산물)
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "coverage", ".venv", "venv", "__pycache__", ".pytest_cache"]);
-const TIMEOUT_MS = 120_000; // verify-tdd 고정값 5 복사 — 조정은 planedd5 §7 #4 선택 대기
+const TIMEOUT_MS = 300_000; // 2026-10-24 120s→300s — td-proj(Godot) 평가가 118.6s로 120s에 닿아 사용자가 올림(planedd5 §7 #4)
 // SPEC 정의 줄 — spec-verify SENT_ID가 허용하는 폭(`*`/`+` 마커·`S7a`형 접미)과 같게 (planedd5 §3-1)
 const SENT_DEF_RE = /^\s*[-*+]\s+([SI]\d{1,3}[a-z]?)\./;
 
@@ -192,7 +192,7 @@ async function runVitestRaw(appAbs, paths) {
       [entry, "run", ...paths, "--reporter=json", `--outputFile=${outPath}`],
       { cwd: appAbs, timeoutMs: TIMEOUT_MS },
     );
-    if (res.timedOut) return { runError: "타임아웃(120s)" };
+    if (res.timedOut) return { runError: `타임아웃(${TIMEOUT_MS / 1000}s)` };
     if (res.code === null) return { runError: `spawn: ${res.stderrTail.trim()}` };
     if (!existsSync(outPath))
       return {
@@ -253,7 +253,7 @@ async function runPytestRaw(appAbs, paths) {
       ["-m", "pytest", ...paths, "-p", "specgate_report", "-p", "no:cacheprovider", "--continue-on-collection-errors", "-q"],
       { cwd: appAbs, timeoutMs: TIMEOUT_MS, env },
     );
-    if (res.timedOut) return { runError: "타임아웃(120s)" };
+    if (res.timedOut) return { runError: `타임아웃(${TIMEOUT_MS / 1000}s)` };
     if (res.code === null) return { runError: `spawn: ${res.stderrTail.trim()}` };
     if (!existsSync(outPath))
       return { runError: `결과 파일 부재 (exit ${res.code})` + (res.stderrTail ? ` stderr: ${res.stderrTail.trim()}` : "") };
