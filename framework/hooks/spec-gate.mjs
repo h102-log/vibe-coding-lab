@@ -16,7 +16,7 @@ import { RULES, ruleOf, UNASSIGNED, line1 } from '../specgate.mjs';
 
 // 게이트 대상 = 구현 소스. 문서·설정·SPEC 자신은 SPEC 없이도 쓸 수 있어야 한다
 // (여기에 .md를 넣으면 SPEC.md를 쓰려는 첫 Write가 자기 자신에게 막힌다).
-const SRC = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|swift|kt|c|cc|cpp|h|hpp|cs|vue|svelte)$/i;
+const SRC = /\.(ts|tsx|js|jsx|mjs|cjs|py|gd|go|rs|java|rb|php|swift|kt|c|cc|cpp|h|hpp|cs|vue|svelte)$/i;
 // 구현 시작 시점에 참이 될 수 있는 검사만 pre에 건다. C4(문장 지목)·C5(`선택 대기` 재확인)는
 // 구현이 끝나야 쓸 수 있는 것이라 pre에 걸면 첫 줄부터 영원히 막힌다.
 const PRE = new Set(['C1', 'C2', 'C3']);
@@ -199,6 +199,7 @@ const intact = (d, e) => (rd(d, 'SPEC.md') !== MINI ? 'SPEC.md가 바뀌었다' 
 const CASES = [
   //  이름                SPEC 재료      모드    Write 대상     기대exit  재진입  델타      부수 확인
   ['SPEC 없음',         'none',        'pre',  'src/app.ts',  2],
+  ['SPEC 없음 + .gd',  'none',        'pre',  'src/main.gd', 2],
   ['빈 SPEC',           'empty',       'pre',  'src/app.ts',  2],
   ['빈 SPEC + 문서',    'empty',       'pre',  'README.md',   0],
   ['빈 SPEC + 툴무관',  'empty',       'pre',  null,          0],

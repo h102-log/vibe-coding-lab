@@ -62,7 +62,7 @@ SPEC을 직접 고쳐도 된다 — 사용자가 쓴 문장은 근거 있는 문
 
 ### ② 구현
 
-평소처럼 요청한다. 구현 소스(`.ts .js .py .go .rs .java …` 19종, `hooks/spec-gate.mjs`의 `SRC`)를 **새로 Write**할 때 게이트가 본다:
+평소처럼 요청한다. 구현 소스(`.ts .js .py .gd .go .rs .java …` 23종, `hooks/spec-gate.mjs`의 `SRC`)를 **새로 Write**할 때 게이트가 본다:
 
 | 상황 | 결과 |
 |---|---|
@@ -167,7 +167,7 @@ vitest 또는 pytest가 필요하다 — `EVAL.md` 머리의 `- 러너:` 줄로 
 ## 7. 자주 겪는 것
 
 - **안 막힌다** → ① 설치한 세션 그대로 아닌가(재시작) ② 권한 모드가 `bypassPermissions` 아닌가 ③ 만든 파일 확장자가
-  `SRC` 19종 밖(`.html` `.css` `.md` 등)이 아닌가 ④ `SPEC.md`를 cwd 루트가 아닌 하위 디렉터리에서 찾고 있지 않은가.
+  `SRC` 23종 밖(`.html` `.css` `.md` 등)이 아닌가 ④ `SPEC.md`를 cwd 루트가 아닌 하위 디렉터리에서 찾고 있지 않은가.
 - **플러그인을 고쳤는데 그대로다** → 설치본은 `~/.claude/plugins/cache/` 복사본이라 원본을 따라오지 않는다.
   `/plugin uninstall specgate@proj3` → `/plugin install specgate@proj3` → 재시작. 고친 줄이 캐시본에 있는지 grep으로 확인한다.
 - **한 줄 고치고 끝내려는데 Stop이 §3을 요구한다** → SPEC이 있으면 완료마다 전체 검사다. 수정 작업은 `/specgate:spec delta`로

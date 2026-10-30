@@ -23,7 +23,7 @@ import { RULES, ruleOf, UNASSIGNED, line1 } from '../specgate.mjs';
 
 // 사본: spec-gate.mjs:19 — 그쪽이 바뀌면 여기도 (export하지 않고, export 추가는 수정이라 금지.
 // 두 게이트의 대상 일치가 기본값이다 — planeddmain §7 #7).
-const SRC = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|swift|kt|c|cc|cpp|h|hpp|cs|vue|svelte)$/i;
+const SRC = /\.(ts|tsx|js|jsx|mjs|cjs|py|gd|go|rs|java|rb|php|swift|kt|c|cc|cpp|h|hpp|cs|vue|svelte)$/i;
 // 평가 테스트 자신 — SRC보다 먼저 갈라낸다. 순서가 바뀌면 평가 테스트 작성이 자기 락에 막힌다.
 const TESTS_EVAL = /tests[\\/]eval[\\/]/;
 
