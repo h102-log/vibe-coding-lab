@@ -24,7 +24,7 @@ import { parseEval, hash8, canonical, evalTestHashes, loadEval, inspectEval } fr
 const posix = (p) => p.split(sep).join("/"); // 사본: verify-tdd.mjs:23
 // 사본: hooks/spec-gate.mjs:19 — 훅 모듈 import는 방향이 반대다(처치 도구가 훅을 import하면
 // 훅 수정이 러너를 흔든다). 값 복사만.
-const SRC_RE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|swift|kt|c|cc|cpp|h|hpp|cs|vue|svelte)$/i;
+const SRC_RE = /\.(ts|tsx|js|jsx|mjs|cjs|py|gd|go|rs|java|rb|php|swift|kt|c|cc|cpp|h|hpp|cs|vue|svelte)$/i;
 // verify-tdd.mjs:29 + Python 4종(.venv/venv는 .py 수천 장, __pycache__·.pytest_cache는 러너 부산물)
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "coverage", ".venv", "venv", "__pycache__", ".pytest_cache"]);
 const TIMEOUT_MS = 300_000; // 2026-10-24 120s→300s — td-proj(Godot) 평가가 118.6s로 120s에 닿아 사용자가 올림(planedd5 §7 #4)
